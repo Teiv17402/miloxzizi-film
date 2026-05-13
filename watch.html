@@ -5,15 +5,121 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
   <link rel="stylesheet" href="css/style.css" />
-  <!-- HLS.js để phát file .m3u8 -->
+
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+
+  <!-- HLS.js -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+
+  <!-- Plyr JS -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+  <style>
+    /* Customize Plyr theo theme MiloxZizi Film */
+    :root {
+      --plyr-color-main: #e50914;
+      --plyr-video-background: #000;
+      --plyr-menu-background: rgba(20, 20, 20, 0.95);
+      --plyr-menu-color: #fff;
+      --plyr-tooltip-background: rgba(20, 20, 20, 0.95);
+      --plyr-tooltip-color: #fff;
+      --plyr-video-control-color: #fff;
+      --plyr-video-control-color-hover: #e50914;
+      --plyr-range-fill-background: #e50914;
+      --plyr-range-thumb-background: #e50914;
+      --plyr-control-radius: 6px;
+    }
+
+    .plyr {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .plyr--full-ui input[type=range] {
+      color: var(--plyr-color-main);
+    }
+
+    .plyr__menu__container {
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .plyr__control--overlaid {
+      background: var(--plyr-color-main);
+      box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5);
+    }
+
+    .plyr__control--overlaid:hover {
+      background: #f40612;
+    }
+
+    /* Wrapper cho player */
+    .player-container {
+      max-width: 1200px;
+      margin: 0 auto 28px;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .video-info-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .video-info-bar .title-group h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+    }
+
+    .video-info-bar .title-group .ep {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .video-info-bar .title-group .ep strong {
+      color: var(--accent);
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .quick-actions button {
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .quick-actions button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
 <body>
   <div id="header-container"></div>
 
   <main>
     <div id="watchContent">
-      <div class="loading"><div class="spinner"></div><p style="margin-top:12px;">Đang tải...</p></div>
+      <div class="loading"><div class="spinner"></div><p style="margin-top:12px;">Đang tải phim...</p></div>
     </div>
   </main>
 
@@ -30,6 +136,9 @@
     const epSlug = getQueryParam('ep');
     const serverIdx = parseInt(getQueryParam('server')) || 0;
 
+    let plyrInstance = null;
+    let hlsInstance = null;
+
     if (!slug) {
       document.getElementById('watchContent').innerHTML = '<div class="empty-state">Thiếu thông tin phim.</div>';
     } else {
@@ -43,7 +152,6 @@
         return;
       }
 
-      // Tìm tập đang xem
       const server = episodes[serverIdx] || episodes[0];
       const eps = server?.server_data || [];
       const currentEp = epSlug ? eps.find(e => e.slug === epSlug) : eps[0];
@@ -54,55 +162,180 @@
       }
 
       document.title = `${movie.name} - ${currentEp.name} - MiloxZizi Film`;
-
-      // Lưu lịch sử xem
       saveHistory(movie, currentEp);
 
-      // Render UI
-      document.getElementById('watchContent').innerHTML = `
-        <div class="player-wrapper">
-          <video id="videoPlayer" controls autoplay></video>
-        </div>
+      // Find next/prev episode
+      const currentIdx = eps.findIndex(e => e.slug === currentEp.slug);
+      const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
+      const prevEp = currentIdx > 0 ? eps[currentIdx - 1] : null;
 
-        <div class="player-info">
-          <h1 style="font-size:24px;margin-bottom:8px;">${movie.name}</h1>
-          <p style="color:var(--text-secondary);">Đang xem: <strong style="color:#fff;">${currentEp.name}</strong></p>
-          <div class="btn-group" style="margin-top:12px;">
-            <a href="movie.html?slug=${slug}" class="btn btn-secondary">← Quay lại chi tiết</a>
+      document.getElementById('watchContent').innerHTML = `
+        <div class="player-container">
+          <video id="videoPlayer" playsinline controls></video>
+
+          <div class="video-info-bar">
+            <div class="title-group">
+              <h1>${movie.name}</h1>
+              <div class="ep">Đang xem: <strong>${currentEp.name}</strong></div>
+            </div>
+            <div class="quick-actions">
+              ${prevEp ? `<button onclick="location.href='watch.html?slug=${slug}&ep=${encodeURIComponent(prevEp.slug)}&server=${serverIdx}'">⏮ Tập trước</button>` : ''}
+              ${nextEp ? `<button onclick="location.href='watch.html?slug=${slug}&ep=${encodeURIComponent(nextEp.slug)}&server=${serverIdx}'">Tập sau ⏭</button>` : ''}
+              <button onclick="location.href='movie.html?slug=${slug}'">ⓘ Chi tiết</button>
+            </div>
           </div>
         </div>
 
         ${renderEpisodes(episodes, currentEp.slug, serverIdx)}
       `;
 
-      // Khởi tạo player
-      initPlayer(currentEp.link_m3u8);
+      initPlyrPlayer(currentEp.link_m3u8, nextEp ? `watch.html?slug=${slug}&ep=${encodeURIComponent(nextEp.slug)}&server=${serverIdx}` : null);
       bindServerTabs();
     }
 
-    function initPlayer(m3u8Url) {
+    function initPlyrPlayer(m3u8Url, nextEpUrl) {
       const video = document.getElementById('videoPlayer');
+
       if (!m3u8Url) {
-        video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Tập này chưa có link xem.</div>';
+        document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Tập này chưa có link xem.</div>';
         return;
       }
 
-      // Safari (iOS, macOS) hỗ trợ HLS native
+      // Native HLS support (Safari iOS/macOS)
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = m3u8Url;
-      } else if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(m3u8Url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('HLS error:', data);
-          if (data.fatal) {
-            video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Không phát được video. Có thể link đã hết hạn hoặc bị chặn.</div>';
-          }
-        });
-      } else {
-        video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Trình duyệt không hỗ trợ HLS.</div>';
+        plyrInstance = new Plyr(video, getPlyrConfig());
+        if (nextEpUrl) {
+          plyrInstance.on('ended', () => { window.location.href = nextEpUrl; });
+        }
+        return;
       }
+
+      if (!Hls.isSupported()) {
+        document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Trình duyệt không hỗ trợ HLS.</div>';
+        return;
+      }
+
+      hlsInstance = new Hls({
+        capLevelToPlayerSize: false,
+        startLevel: -1, // auto
+      });
+
+      hlsInstance.loadSource(m3u8Url);
+      hlsInstance.attachMedia(video);
+
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        // Lấy danh sách quality từ HLS
+        const availableQualities = hlsInstance.levels
+          .map(l => l.height)
+          .filter(h => h > 0)
+          .sort((a, b) => b - a);
+
+        // Bỏ trùng
+        const uniqueQualities = [...new Set(availableQualities)];
+
+        // Thêm 0 = Auto vào đầu
+        const qualities = uniqueQualities.length > 1 ? [0, ...uniqueQualities] : uniqueQualities;
+
+        const config = getPlyrConfig();
+
+        // Chỉ enable quality menu nếu có nhiều hơn 1 chất lượng
+        if (qualities.length > 1) {
+          config.quality = {
+            default: 0,
+            options: qualities,
+            forced: true,
+            onChange: (newQuality) => {
+              if (newQuality === 0) {
+                // Auto - HLS.js tự chọn
+                hlsInstance.currentLevel = -1;
+              } else {
+                // Tìm level matching height
+                hlsInstance.levels.forEach((level, idx) => {
+                  if (level.height === newQuality) {
+                    hlsInstance.currentLevel = idx;
+                  }
+                });
+              }
+            }
+          };
+          config.i18n = { qualityLabel: { 0: 'Auto' } };
+          config.settings = ['quality', 'speed'];
+        } else {
+          config.settings = ['speed'];
+        }
+
+        plyrInstance = new Plyr(video, config);
+
+        if (nextEpUrl) {
+          plyrInstance.on('ended', () => {
+            window.location.href = nextEpUrl;
+          });
+        }
+      });
+
+      hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('HLS fatal error:', data);
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hlsInstance.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hlsInstance.recoverMediaError();
+              break;
+            default:
+              document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Không phát được video. Link có thể đã hết hạn. Thử chuyển server khác.</div>';
+              break;
+          }
+        }
+      });
+    }
+
+    function getPlyrConfig() {
+      return {
+        controls: [
+          'play-large', 'rewind', 'play', 'fast-forward',
+          'progress', 'current-time', 'duration',
+          'mute', 'volume',
+          'settings', 'pip', 'fullscreen'
+        ],
+        settings: ['quality', 'speed'],
+        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+        seekTime: 10,
+        keyboard: { focused: true, global: true },
+        tooltips: { controls: true, seek: true },
+        i18n: {
+          restart: 'Phát lại',
+          rewind: 'Lùi {seektime}s',
+          play: 'Phát',
+          pause: 'Tạm dừng',
+          fastForward: 'Tiến {seektime}s',
+          seek: 'Tua',
+          seekLabel: '{currentTime} / {duration}',
+          played: 'Đã xem',
+          buffered: 'Đã tải',
+          currentTime: 'Hiện tại',
+          duration: 'Tổng thời lượng',
+          volume: 'Âm lượng',
+          mute: 'Tắt tiếng',
+          unmute: 'Bật tiếng',
+          enableCaptions: 'Bật phụ đề',
+          disableCaptions: 'Tắt phụ đề',
+          download: 'Tải xuống',
+          enterFullscreen: 'Toàn màn hình',
+          exitFullscreen: 'Thoát toàn màn hình',
+          frameTitle: 'Player phim {title}',
+          captions: 'Phụ đề',
+          settings: 'Cài đặt',
+          pip: 'PIP',
+          menuBack: 'Quay lại',
+          speed: 'Tốc độ',
+          normal: 'Bình thường',
+          quality: 'Chất lượng',
+          loop: 'Lặp lại'
+        }
+      };
     }
 
     function renderEpisodes(episodes, currentEpSlug, currentServerIdx) {
