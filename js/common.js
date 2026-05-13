@@ -7,6 +7,16 @@
 const PLACEHOLDER_POSTER = 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 300%22><rect fill=%22%23222%22 width=%22200%22 height=%22300%22/><text x=%22100%22 y=%22150%22 fill=%22%23666%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22>No Image</text></svg>';
 
 function renderHeader(activePage = 'home') {
+  // Dropdown thể loại
+  const categoryDropdown = (typeof CATEGORIES !== 'undefined' ? CATEGORIES : [])
+    .map(c => `<a href="search.html?category=${c.slug}">${c.name}</a>`)
+    .join('');
+
+  // Dropdown quốc gia
+  const countryDropdown = (typeof COUNTRIES !== 'undefined' ? COUNTRIES : [])
+    .map(c => `<a href="search.html?country=${c.slug}">${c.name}</a>`)
+    .join('');
+
   return `
     <header id="mainHeader">
       <div class="nav">
@@ -16,7 +26,14 @@ function renderHeader(activePage = 'home') {
           <li><a href="search.html?type=phim-bo" class="${activePage === 'phim-bo' ? 'active' : ''}">Phim bộ</a></li>
           <li><a href="search.html?type=phim-le" class="${activePage === 'phim-le' ? 'active' : ''}">Phim lẻ</a></li>
           <li><a href="search.html?type=hoat-hinh" class="${activePage === 'hoat-hinh' ? 'active' : ''}">Hoạt hình</a></li>
-          <li><a href="search.html?type=tv-shows" class="${activePage === 'tv-shows' ? 'active' : ''}">TV Show</a></li>
+          <li class="has-dropdown">
+            <span class="dropdown-toggle">Thể loại <i class="caret">▾</i></span>
+            <div class="dropdown-menu dropdown-grid">${categoryDropdown}</div>
+          </li>
+          <li class="has-dropdown">
+            <span class="dropdown-toggle">Quốc gia <i class="caret">▾</i></span>
+            <div class="dropdown-menu dropdown-grid">${countryDropdown}</div>
+          </li>
           <li><a href="favorites.html" class="${activePage === 'favorites' ? 'active' : ''}">★ Yêu thích</a></li>
         </ul>
         <form class="search-box" onsubmit="handleSearch(event)">
@@ -261,38 +278,4 @@ function initHeroSlider() {
     slides.forEach(s => s.classList.remove('active'));
     indicators.forEach(i => i.classList.remove('active'));
     slides[idx].classList.add('active');
-    indicators[idx].classList.add('active');
-    current = idx;
-  }
-
-  function next() {
-    goTo((current + 1) % slides.length);
-  }
-
-  function startAuto() {
-    clearInterval(timer);
-    timer = setInterval(next, 6000);
-  }
-
-  indicators.forEach(ind => {
-    ind.addEventListener('click', () => {
-      goTo(parseInt(ind.dataset.idx));
-      startAuto();
-    });
-  });
-
-  startAuto();
-}
-
-function stripHtml(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-}
-
-// Auto init header scroll khi load
-if (document.readyState !== 'loading') {
-  setTimeout(initHeaderScroll, 100);
-} else {
-  document.addEventListener('DOMContentLoaded', initHeaderScroll);
-}
+    indicators[idx].classList.ad

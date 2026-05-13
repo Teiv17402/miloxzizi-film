@@ -160,29 +160,35 @@ function getPosterUrl(movie) {
 }
 
 /**
- * Danh sách thể loại cố định (để filter)
+ * Danh sách thể loại đầy đủ (để filter)
  */
 const CATEGORIES = [
-  { slug: 'hanh-dong', name: 'Hành động' },
-  { slug: 'tinh-cam', name: 'Tình cảm' },
-  { slug: 'hai-huoc', name: 'Hài hước' },
-  { slug: 'co-trang', name: 'Cổ trang' },
-  { slug: 'tam-ly', name: 'Tâm lý' },
-  { slug: 'hinh-su', name: 'Hình sự' },
-  { slug: 'chien-tranh', name: 'Chiến tranh' },
-  { slug: 'the-thao', name: 'Thể thao' },
-  { slug: 'vo-thuat', name: 'Võ thuật' },
-  { slug: 'vien-tuong', name: 'Viễn tưởng' },
-  { slug: 'phieu-luu', name: 'Phiêu lưu' },
-  { slug: 'khoa-hoc', name: 'Khoa học' },
-  { slug: 'kinh-di', name: 'Kinh dị' },
-  { slug: 'am-nhac', name: 'Âm nhạc' },
-  { slug: 'than-thoai', name: 'Thần thoại' },
-  { slug: 'tai-lieu', name: 'Tài liệu' },
-  { slug: 'gia-dinh', name: 'Gia đình' },
-  { slug: 'chinh-kich', name: 'Chính kịch' },
-  { slug: 'bi-an', name: 'Bí ẩn' },
-  { slug: 'hoc-duong', name: 'Học đường' }
+  { slug: 'hanh-dong', name: 'Hành Động' },
+  { slug: 'mien-tay', name: 'Miền Tây' },
+  { slug: 'tre-em', name: 'Trẻ Em' },
+  { slug: 'lich-su', name: 'Lịch Sử' },
+  { slug: 'co-trang', name: 'Cổ Trang' },
+  { slug: 'chien-tranh', name: 'Chiến Tranh' },
+  { slug: 'vien-tuong', name: 'Viễn Tưởng' },
+  { slug: 'kinh-di', name: 'Kinh Dị' },
+  { slug: 'tai-lieu', name: 'Tài Liệu' },
+  { slug: 'bi-an', name: 'Bí Ẩn' },
+  { slug: 'phim-18', name: 'Phim 18+' },
+  { slug: 'tinh-cam', name: 'Tình Cảm' },
+  { slug: 'tam-ly', name: 'Tâm Lý' },
+  { slug: 'the-thao', name: 'Thể Thao' },
+  { slug: 'phieu-luu', name: 'Phiêu Lưu' },
+  { slug: 'am-nhac', name: 'Âm Nhạc' },
+  { slug: 'gia-dinh', name: 'Gia Đình' },
+  { slug: 'hoc-duong', name: 'Học Đường' },
+  { slug: 'hai-huoc', name: 'Hài Hước' },
+  { slug: 'hinh-su', name: 'Hình Sự' },
+  { slug: 'vo-thuat', name: 'Võ Thuật' },
+  { slug: 'khoa-hoc', name: 'Khoa Học' },
+  { slug: 'than-thoai', name: 'Thần Thoại' },
+  { slug: 'chinh-kich', name: 'Chính Kịch' },
+  { slug: 'kinh-dien', name: 'Kinh Điển' },
+  { slug: 'phim-ngan', name: 'Phim Ngắn' }
 ];
 
 /**
