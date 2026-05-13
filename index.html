@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiloxZizi Film - Xem phim online miễn phí</title>
+  <meta name="description" content="Xem phim online chất lượng cao, miễn phí, đa thể loại" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <h2 class="section-title">Phim mới cập nhật</h2>
+    <div id="movieList" class="movie-grid"></div>
+
+    <div id="pagination" class="pagination"></div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    // Render header & footer
+    document.getElementById('header-container').innerHTML = renderHeader('home');
+    document.getElementById('footer-container').innerHTML = renderFooter();
+
+    let currentPage = parseInt(getQueryParam('page')) || 1;
+
+    async function loadPage(page) {
+      currentPage = page;
+      showLoading('movieList');
+      document.getElementById('pagination').innerHTML = '';
+
+      const { items, pagination } = await getNewMovies(page);
+      renderMovieList(items, 'movieList');
+      renderPagination(pagination, loadPage, 'pagination');
+    }
+
+    loadPage(currentPage);
+  </script>
+</body>
+</html>

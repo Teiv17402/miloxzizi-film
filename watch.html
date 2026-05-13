@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Xem phim - MiloxZizi Film</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- HLS.js để phát file .m3u8 -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div id="watchContent">
+      <div class="loading"><div class="spinner"></div><p style="margin-top:12px;">Đang tải...</p></div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.getElementById('header-container').innerHTML = renderHeader();
+    document.getElementById('footer-container').innerHTML = renderFooter();
+
+    const slug = getQueryParam('slug');
+    const epSlug = getQueryParam('ep');
+    const serverIdx = parseInt(getQueryParam('server')) || 0;
+
+    if (!slug) {
+      document.getElementById('watchContent').innerHTML = '<div class="empty-state">Thiếu thông tin phim.</div>';
+    } else {
+      loadWatch();
+    }
+
+    async function loadWatch() {
+      const { movie, episodes } = await getMovieDetail(slug);
+      if (!movie) {
+        document.getElementById('watchContent').innerHTML = '<div class="empty-state">Không tải được phim.</div>';
+        return;
+      }
+
+      // Tìm tập đang xem
+      const server = episodes[serverIdx] || episodes[0];
+      const eps = server?.server_data || [];
+      const currentEp = epSlug ? eps.find(e => e.slug === epSlug) : eps[0];
+
+      if (!currentEp) {
+        document.getElementById('watchContent').innerHTML = '<div class="empty-state">Không tìm thấy tập phim.</div>';
+        return;
+      }
+
+      document.title = `${movie.name} - ${currentEp.name} - MiloxZizi Film`;
+
+      // Lưu lịch sử xem
+      saveHistory(movie, currentEp);
+
+      // Render UI
+      document.getElementById('watchContent').innerHTML = `
+        <div class="player-wrapper">
+          <video id="videoPlayer" controls autoplay></video>
+        </div>
+
+        <div class="player-info">
+          <h1 style="font-size:24px;margin-bottom:8px;">${movie.name}</h1>
+          <p style="color:var(--text-secondary);">Đang xem: <strong style="color:#fff;">${currentEp.name}</strong></p>
+          <div class="btn-group" style="margin-top:12px;">
+            <a href="movie.html?slug=${slug}" class="btn btn-secondary">← Quay lại chi tiết</a>
+          </div>
+        </div>
+
+        ${renderEpisodes(episodes, currentEp.slug, serverIdx)}
+      `;
+
+      // Khởi tạo player
+      initPlayer(currentEp.link_m3u8);
+      bindServerTabs();
+    }
+
+    function initPlayer(m3u8Url) {
+      const video = document.getElementById('videoPlayer');
+      if (!m3u8Url) {
+        video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Tập này chưa có link xem.</div>';
+        return;
+      }
+
+      // Safari (iOS, macOS) hỗ trợ HLS native
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = m3u8Url;
+      } else if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS error:', data);
+          if (data.fatal) {
+            video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Không phát được video. Có thể link đã hết hạn hoặc bị chặn.</div>';
+          }
+        });
+      } else {
+        video.outerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;">Trình duyệt không hỗ trợ HLS.</div>';
+      }
+    }
+
+    function renderEpisodes(episodes, currentEpSlug, currentServerIdx) {
+      if (!episodes || episodes.length === 0) return '';
+      const tabs = episodes.map((server, idx) => `
+        <button class="server-tab ${idx === currentServerIdx ? 'active' : ''}" data-idx="${idx}">
+          ${server.server_name}
+        </button>
+      `).join('');
+
+      const lists = episodes.map((server, idx) => `
+        <div class="episode-list" data-idx="${idx}" style="${idx === currentServerIdx ? '' : 'display:none'}">
+          ${(server.server_data || []).map(ep => `
+            <a href="watch.html?slug=${slug}&ep=${encodeURIComponent(ep.slug)}&server=${idx}"
+               class="episode-btn ${ep.slug === currentEpSlug ? 'active' : ''}">
+              ${ep.name}
+            </a>
+          `).join('')}
+        </div>
+      `).join('');
+
+      return `
+        <div class="episodes-section">
+          <h2 class="section-title" style="margin-top:0;">Danh sách tập</h2>
+          <div class="server-tabs">${tabs}</div>
+          ${lists}
+        </div>
+      `;
+    }
+
+    function bindServerTabs() {
+      document.querySelectorAll('.server-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const idx = tab.dataset.idx;
+          document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.querySelectorAll('.episode-list').forEach(list => {
+            list.style.display = list.dataset.idx === idx ? '' : 'none';
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tìm kiếm phim - MiloxZizi Film</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <h2 class="section-title" id="pageTitle">Tìm kiếm phim</h2>
+
+    <div class="filters">
+      <select id="filterType">
+        <option value="">-- Loại phim --</option>
+        <option value="phim-bo">Phim bộ</option>
+        <option value="phim-le">Phim lẻ</option>
+        <option value="hoat-hinh">Hoạt hình</option>
+        <option value="tv-shows">TV Shows</option>
+      </select>
+
+      <select id="filterCategory">
+        <option value="">-- Thể loại --</option>
+      </select>
+
+      <select id="filterCountry">
+        <option value="">-- Quốc gia --</option>
+      </select>
+
+      <select id="filterYear">
+        <option value="">-- Năm --</option>
+      </select>
+
+      <button class="btn" id="applyFilter">Áp dụng</button>
+      <button class="btn btn-secondary" id="resetFilter">Xoá lọc</button>
+    </div>
+
+    <div id="movieList" class="movie-grid"></div>
+    <div id="pagination" class="pagination"></div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.getElementById('header-container').innerHTML = renderHeader();
+    document.getElementById('footer-container').innerHTML = renderFooter();
+
+    // Populate filter dropdowns
+    const filterCategory = document.getElementById('filterCategory');
+    CATEGORIES.forEach(c => {
+      filterCategory.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+    });
+
+    const filterCountry = document.getElementById('filterCountry');
+    COUNTRIES.forEach(c => {
+      filterCountry.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+    });
+
+    const filterYear = document.getElementById('filterYear');
+    YEARS.forEach(y => {
+      filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+    });
+
+    // Đọc URL params để init state
+    const keyword = getQueryParam('keyword') || '';
+    const type = getQueryParam('type') || '';
+    const category = getQueryParam('category') || '';
+    const country = getQueryParam('country') || '';
+    const year = getQueryParam('year') || '';
+    let currentPage = parseInt(getQueryParam('page')) || 1;
+
+    // Set state filter từ URL
+    document.getElementById('filterType').value = type;
+    document.getElementById('filterCategory').value = category;
+    document.getElementById('filterCountry').value = country;
+    document.getElementById('filterYear').value = year;
+
+    if (keyword) {
+      document.getElementById('searchInput').value = keyword;
+      document.getElementById('pageTitle').textContent = `Kết quả tìm: "${keyword}"`;
+    }
+
+    // Bind filter button
+    document.getElementById('applyFilter').addEventListener('click', () => {
+      const params = new URLSearchParams();
+      const t = document.getElementById('filterType').value;
+      const c = document.getElementById('filterCategory').value;
+      const co = document.getElementById('filterCountry').value;
+      const y = document.getElementById('filterYear').value;
+      if (t) params.set('type', t);
+      if (c) params.set('category', c);
+      if (co) params.set('country', co);
+      if (y) params.set('year', y);
+      window.location.href = `search.html?${params.toString()}`;
+    });
+
+    document.getElementById('resetFilter').addEventListener('click', () => {
+      window.location.href = 'search.html';
+    });
+
+    async function loadPage(page) {
+      currentPage = page;
+      showLoading('movieList');
+      document.getElementById('pagination').innerHTML = '';
+
+      let result;
+      if (keyword) {
+        result = await searchMovies(keyword, page);
+      } else if (category) {
+        result = await getMoviesByCategory(category, page);
+        document.getElementById('pageTitle').textContent = 'Thể loại: ' + (CATEGORIES.find(c => c.slug === category)?.name || category);
+      } else if (country) {
+        result = await getMoviesByCountry(country, page);
+        document.getElementById('pageTitle').textContent = 'Quốc gia: ' + (COUNTRIES.find(c => c.slug === country)?.name || country);
+      } else if (year) {
+        result = await getMoviesByYear(year, page);
+        document.getElementById('pageTitle').textContent = 'Năm: ' + year;
+      } else if (type) {
+        result = await getMoviesByType(type, page);
+        const typeNames = {
+          'phim-bo': 'Phim bộ',
+          'phim-le': 'Phim lẻ',
+          'hoat-hinh': 'Hoạt hình',
+          'tv-shows': 'TV Shows'
+        };
+        document.getElementById('pageTitle').textContent = typeNames[type] || type;
+      } else {
+        result = await getNewMovies(page);
+        document.getElementById('pageTitle').textContent = 'Tất cả phim';
+      }
+
+      renderMovieList(result.items, 'movieList');
+      renderPagination(result.pagination, loadPage, 'pagination');
+    }
+
+    loadPage(currentPage);
+  </script>
+</body>
+</html>

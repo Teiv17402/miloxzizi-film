@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chi tiết phim - MiloxZizi Film</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div id="movieDetail">
+      <div class="loading"><div class="spinner"></div><p style="margin-top:12px;">Đang tải thông tin phim...</p></div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.getElementById('header-container').innerHTML = renderHeader();
+    document.getElementById('footer-container').innerHTML = renderFooter();
+
+    const slug = getQueryParam('slug');
+    if (!slug) {
+      document.getElementById('movieDetail').innerHTML = '<div class="empty-state">Không tìm thấy phim.</div>';
+    } else {
+      loadMovie();
+    }
+
+    async function loadMovie() {
+      const { movie, episodes } = await getMovieDetail(slug);
+      if (!movie) {
+        document.getElementById('movieDetail').innerHTML = '<div class="empty-state">Không tải được phim.</div>';
+        return;
+      }
+      document.title = `${movie.name} - MiloxZizi Film`;
+      renderDetail(movie, episodes);
+    }
+
+    function renderDetail(movie, episodes) {
+      const poster = getPosterUrl(movie);
+      const categories = (movie.category || []).map(c => c.name).join(', ');
+      const countries = (movie.country || []).map(c => c.name).join(', ');
+      const directors = (movie.director || []).filter(d => d).join(', ');
+      const actors = (movie.actor || []).filter(a => a).join(', ');
+      const fav = isFavorite(slug);
+
+      // Lấy tập đầu tiên để xem
+      const firstEp = episodes[0]?.server_data?.[0];
+      const firstEpUrl = firstEp ? `watch.html?slug=${slug}&ep=${encodeURIComponent(firstEp.slug)}` : '#';
+
+      document.getElementById('movieDetail').innerHTML = `
+        <div class="movie-detail">
+          <div class="poster">
+            <img src="${poster}" alt="${movie.name}"
+                 onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 280 420%22><rect fill=%22%23222%22 width=%22280%22 height=%22420%22/><text x=%22140%22 y=%22210%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
+          </div>
+          <div class="info">
+            <h1>${movie.name}</h1>
+            <div class="origin">${movie.origin_name || ''}</div>
+
+            <div class="btn-group">
+              <a href="${firstEpUrl}" class="btn">▶ Xem ngay</a>
+              <button class="btn btn-secondary" id="favBtn">${fav ? '★ Đã thích' : '☆ Yêu thích'}</button>
+            </div>
+
+            <ul class="meta-list">
+              <li><strong>Trạng thái:</strong> ${movie.episode_current || 'N/A'}</li>
+              <li><strong>Năm:</strong> ${movie.year || 'N/A'}</li>
+              <li><strong>Thời lượng:</strong> ${movie.time || 'N/A'}</li>
+              <li><strong>Chất lượng:</strong> ${movie.quality || 'N/A'} • ${movie.lang || 'N/A'}</li>
+              <li><strong>Thể loại:</strong> ${categories || 'N/A'}</li>
+              <li><strong>Quốc gia:</strong> ${countries || 'N/A'}</li>
+              <li><strong>Đạo diễn:</strong> ${directors || 'N/A'}</li>
+              <li><strong>Diễn viên:</strong> ${actors || 'N/A'}</li>
+            </ul>
+
+            <div class="description">
+              ${movie.content || 'Chưa có mô tả.'}
+            </div>
+          </div>
+        </div>
+
+        ${renderEpisodes(episodes)}
+      `;
+
+      // Bind favorite button
+      const favBtn = document.getElementById('favBtn');
+      favBtn.addEventListener('click', () => {
+        const isNow = toggleFavorite(movie);
+        favBtn.textContent = isNow ? '★ Đã thích' : '☆ Yêu thích';
+      });
+
+      // Bind server tabs
+      bindServerTabs();
+    }
+
+    function renderEpisodes(episodes) {
+      if (!episodes || episodes.length === 0) {
+        return '<div class="episodes-section"><p>Chưa có tập phim.</p></div>';
+      }
+      const tabs = episodes.map((server, idx) => `
+        <button class="server-tab ${idx === 0 ? 'active' : ''}" data-idx="${idx}">
+          ${server.server_name}
+        </button>
+      `).join('');
+
+      const lists = episodes.map((server, idx) => `
+        <div class="episode-list" data-idx="${idx}" style="${idx === 0 ? '' : 'display:none'}">
+          ${(server.server_data || []).map(ep => `
+            <a href="watch.html?slug=${slug}&ep=${encodeURIComponent(ep.slug)}&server=${idx}" class="episode-btn">
+              ${ep.name}
+            </a>
+          `).join('')}
+        </div>
+      `).join('');
+
+      return `
+        <div class="episodes-section">
+          <h2 class="section-title" style="margin-top:0;">Danh sách tập</h2>
+          <div class="server-tabs">${tabs}</div>
+          ${lists}
+        </div>
+      `;
+    }
+
+    function bindServerTabs() {
+      document.querySelectorAll('.server-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const idx = tab.dataset.idx;
+          document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.querySelectorAll('.episode-list').forEach(list => {
+            list.style.display = list.dataset.idx === idx ? '' : 'none';
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>

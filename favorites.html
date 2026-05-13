@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phim yêu thích - MiloxZizi Film</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div class="server-tabs" style="margin-bottom: 24px;">
+      <button class="server-tab active" data-tab="favorites">★ Yêu thích</button>
+      <button class="server-tab" data-tab="history">🕒 Lịch sử xem</button>
+    </div>
+
+    <div id="favoritesView">
+      <h2 class="section-title">Phim bạn yêu thích</h2>
+      <div id="favoritesList" class="movie-grid"></div>
+    </div>
+
+    <div id="historyView" style="display:none;">
+      <h2 class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        Lịch sử xem
+        <button class="btn btn-secondary" id="clearHistoryBtn" style="font-size:13px;">Xoá tất cả</button>
+      </h2>
+      <div id="historyList" class="movie-grid"></div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.getElementById('header-container').innerHTML = renderHeader('favorites');
+    document.getElementById('footer-container').innerHTML = renderFooter();
+
+    // Tab switching
+    document.querySelectorAll('.server-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const view = tab.dataset.tab;
+        document.getElementById('favoritesView').style.display = view === 'favorites' ? '' : 'none';
+        document.getElementById('historyView').style.display = view === 'history' ? '' : 'none';
+      });
+    });
+
+    function renderFavorites() {
+      const favs = getFavorites();
+      if (favs.length === 0) {
+        document.getElementById('favoritesList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa có phim yêu thích nào.<br/>Vào trang phim và nhấn <strong>★ Yêu thích</strong> để thêm.</div>';
+        return;
+      }
+      // Thêm nút xoá vào mỗi card
+      document.getElementById('favoritesList').innerHTML = favs.map(m => `
+        <div class="movie-card" style="position:relative;">
+          <a href="movie.html?slug=${m.slug}">
+            <div class="poster">
+              <img src="${getPosterUrl(m)}" alt="${m.name}" loading="lazy"
+                   onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 270%22><rect fill=%22%23222%22 width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
+            </div>
+            <div class="info">
+              <div class="name">${m.name}</div>
+              <div class="origin-name">${m.origin_name || ''} ${m.year ? '• ' + m.year : ''}</div>
+            </div>
+          </a>
+          <button class="btn btn-secondary remove-fav" data-slug="${m.slug}"
+                  style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;">✕</button>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.remove-fav').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          removeFavorite(btn.dataset.slug);
+          renderFavorites();
+        });
+      });
+    }
+
+    function renderHistory() {
+      const history = getHistory();
+      if (history.length === 0) {
+        document.getElementById('historyList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa xem phim nào.</div>';
+        return;
+      }
+      document.getElementById('historyList').innerHTML = history.map(m => `
+        <div class="movie-card" style="position:relative;">
+          <a href="watch.html?slug=${m.slug}&ep=${encodeURIComponent(m.episodeSlug)}">
+            <div class="poster">
+              <img src="${getPosterUrl(m)}" alt="${m.name}" loading="lazy"
+                   onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 270%22><rect fill=%22%23222%22 width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
+              <div class="badges"><span class="badge">${m.episodeName || 'Tập 1'}</span></div>
+            </div>
+            <div class="info">
+              <div class="name">${m.name}</div>
+              <div class="origin-name">${new Date(m.watchedAt).toLocaleString('vi-VN')}</div>
+            </div>
+          </a>
+          <button class="btn btn-secondary remove-history" data-slug="${m.slug}"
+                  style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;">✕</button>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.remove-history').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          removeFromHistory(btn.dataset.slug);
+          renderHistory();
+        });
+      });
+    }
+
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+      if (confirm('Xoá toàn bộ lịch sử xem?')) {
+        clearHistory();
+        renderHistory();
+      }
+    });
+
+    renderFavorites();
+    renderHistory();
+  </script>
+</body>
+</html>
