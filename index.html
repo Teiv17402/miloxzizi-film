@@ -10,8 +10,10 @@
 <body>
   <div id="header-container"></div>
 
+  <div id="heroContainer"></div>
+
   <main>
-    <h2 class="section-title">Phim mới cập nhật</h2>
+    <h2 class="section-title">🔥 Phim mới cập nhật</h2>
     <div id="movieList" class="movie-grid"></div>
 
     <div id="pagination" class="pagination"></div>
@@ -23,7 +25,6 @@
   <script src="js/storage.js"></script>
   <script src="js/common.js"></script>
   <script>
-    // Render header & footer
     document.getElementById('header-container').innerHTML = renderHeader('home');
     document.getElementById('footer-container').innerHTML = renderFooter();
 
@@ -31,10 +32,25 @@
 
     async function loadPage(page) {
       currentPage = page;
-      showLoading('movieList');
+      showSkeleton('movieList');
       document.getElementById('pagination').innerHTML = '';
 
+      // Trang 1: load hero banner + phim mới
+      if (page === 1) {
+        document.getElementById('heroContainer').innerHTML = '<div class="hero-skeleton"></div>';
+      }
+
       const { items, pagination } = await getNewMovies(page);
+
+      // Render hero banner ở trang 1
+      if (page === 1 && items.length > 0) {
+        document.getElementById('heroContainer').innerHTML = renderHeroBanner(items);
+        initHeroSlider();
+      } else {
+        document.getElementById('heroContainer').innerHTML = '';
+      }
+
+      hideSkeleton('movieList');
       renderMovieList(items, 'movieList');
       renderPagination(pagination, loadPage, 'pagination');
     }
