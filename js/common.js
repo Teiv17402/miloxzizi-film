@@ -7,12 +7,10 @@
 const PLACEHOLDER_POSTER = 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 300%22><rect fill=%22%23222%22 width=%22200%22 height=%22300%22/><text x=%22100%22 y=%22150%22 fill=%22%23666%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22>No Image</text></svg>';
 
 function renderHeader(activePage = 'home') {
-  // Dropdown thể loại
   const categoryDropdown = (typeof CATEGORIES !== 'undefined' ? CATEGORIES : [])
     .map(c => `<a href="search.html?category=${c.slug}">${c.name}</a>`)
     .join('');
 
-  // Dropdown quốc gia
   const countryDropdown = (typeof COUNTRIES !== 'undefined' ? COUNTRIES : [])
     .map(c => `<a href="search.html?country=${c.slug}">${c.name}</a>`)
     .join('');
@@ -62,9 +60,6 @@ function handleSearch(event) {
   }
 }
 
-/**
- * Render 1 movie card với hover overlay
- */
 function renderMovieCard(movie) {
   const poster = getPosterUrl(movie);
   const badges = [];
@@ -104,13 +99,9 @@ function renderMovieList(movies, containerId) {
     return;
   }
   container.innerHTML = movies.map(renderMovieCard).join('');
-  // Trigger fade-in animation cho mỗi card với stagger delay
   observeCards(container);
 }
 
-/**
- * Skeleton loading - đẹp hơn spinner
- */
 function showSkeleton(containerId, count = 12) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -135,9 +126,6 @@ function showLoading(containerId) {
   showSkeleton(containerId);
 }
 
-/**
- * Intersection Observer - fade-in cards khi scroll vào viewport
- */
 function observeCards(container) {
   const cards = container.querySelectorAll('.movie-card');
   if (!('IntersectionObserver' in window)) {
@@ -146,9 +134,8 @@ function observeCards(container) {
   }
 
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, idx) => {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        // Stagger delay nhỏ cho mỗi card
         const i = Array.from(cards).indexOf(entry.target);
         setTimeout(() => entry.target.classList.add('fade-in'), (i % 6) * 60);
         observer.unobserve(entry.target);
@@ -159,9 +146,6 @@ function observeCards(container) {
   cards.forEach(c => observer.observe(c));
 }
 
-/**
- * Render pagination
- */
 function renderPagination(pagination, onPageClick, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -210,9 +194,6 @@ function getQueryParam(name) {
   return params.get(name);
 }
 
-/**
- * Sticky header - đậm hơn khi scroll
- */
 function initHeaderScroll() {
   const header = document.getElementById('mainHeader');
   if (!header) return;
@@ -222,9 +203,12 @@ function initHeaderScroll() {
   });
 }
 
-/**
- * HERO BANNER SLIDER - cho trang chủ
- */
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
 function renderHeroBanner(movies) {
   if (!movies || movies.length === 0) return '';
   const slides = movies.slice(0, 5);
@@ -237,6 +221,8 @@ function renderHeroBanner(movies) {
     if (m.year) badges.push(`<span>${m.year}</span>`);
     if (m.lang) badges.push(`<span>${m.lang}</span>`);
 
+    const desc = m.content ? stripHtml(m.content).slice(0, 200) + '...' : 'Phim hấp dẫn đang chờ bạn khám phá.';
+
     return `
       <div class="hero-slide ${idx === 0 ? 'active' : ''}" data-idx="${idx}">
         <div class="bg" style="background-image: url('${poster}')"></div>
@@ -244,7 +230,7 @@ function renderHeroBanner(movies) {
           <div class="badge-row">${badges.join('')}</div>
           <h2>${m.name}</h2>
           <div class="origin">${m.origin_name || ''}</div>
-          <div class="desc">${m.content ? stripHtml(m.content).slice(0, 200) + '...' : 'Phim hấp dẫn đang chờ bạn khám phá.'}</div>
+          <div class="desc">${desc}</div>
           <div class="btn-row">
             <a href="movie.html?slug=${m.slug}" class="btn btn-large">▶ Xem ngay</a>
             <a href="movie.html?slug=${m.slug}" class="btn btn-secondary btn-large">ⓘ Chi tiết</a>
@@ -278,4 +264,19 @@ function initHeroSlider() {
     slides.forEach(s => s.classList.remove('active'));
     indicators.forEach(i => i.classList.remove('active'));
     slides[idx].classList.add('active');
-    indicators[idx].classList.ad
+    indicators[idx].classList.add('active');
+    current = idx;
+  }
+
+  function next() {
+    goTo((current + 1) % slides.length);
+  }
+
+  function startAuto() {
+    clearInterval(timer);
+    timer = setInterval(next, 6000);
+  }
+
+  indicators.forEach(ind => {
+    ind.addEventListener('click', () => {
+      goTo(parseInt(ind.dataset
