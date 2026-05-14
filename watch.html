@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r6"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r7"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -39,7 +39,8 @@
     .plyr__control[data-plyr="fast-forward"] svg {
       width: 22px !important; height: 22px !important;
     }
-    .plyr__control--next svg { width: 18px; height: 18px; }
+    .plyr__control--next svg,
+    .plyr__control--prev svg { width: 18px; height: 18px; }
     @media (max-width: 720px) {
       .plyr__control { padding: 10px !important; }
       .plyr--video .plyr__control svg { width: 22px; height: 22px; }
@@ -47,7 +48,8 @@
       .plyr__control[data-plyr="fast-forward"] svg {
         width: 24px !important; height: 24px !important;
       }
-      .plyr__control--next svg { width: 20px; height: 20px; }
+      .plyr__control--next svg,
+      .plyr__control--prev svg { width: 20px; height: 20px; }
     }
     .player-container { max-width: 1200px; margin: 0 auto 28px; animation: fadeInUp 0.6s ease-out; position: relative; }
 
@@ -111,9 +113,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r6"></script>
-  <script src="js/storage.js?v=20260514r6"></script>
-  <script src="js/common.js?v=20260514r6"></script>
+  <script src="js/api.js?v=20260514r7"></script>
+  <script src="js/storage.js?v=20260514r7"></script>
+  <script src="js/common.js?v=20260514r7"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -124,6 +126,7 @@
     let plyrInstance = null;
     let hlsInstance = null;
     let nextEpUrlGlobal = null;
+    let prevEpUrlGlobal = null;
 
     /* SVG ICONS - tròn có chữ 10 (cho cả controls bar VÀ overlay) */
     const SVG_REWIND_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
@@ -137,6 +140,7 @@
       '<text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="currentColor">10</text>' +
       '</svg>';
     const SVG_NEXT = '<svg viewBox="0 0 18 18" fill="currentColor"><path d="M14 4v10h-2V4h2zM4 4l8 5-8 5V4z"/></svg>';
+    const SVG_PREV = '<svg viewBox="0 0 18 18" fill="currentColor"><path d="M4 4v10h2V4H4zM14 4l-8 5 8 5V4z"/></svg>';
 
     if (!slug) {
       document.getElementById('watchContent').innerHTML = '<div class="empty-state">Thiếu thông tin phim.</div>';
@@ -165,6 +169,7 @@
       const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
       const prevEp = currentIdx > 0 ? eps[currentIdx - 1] : null;
       nextEpUrlGlobal = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
+      prevEpUrlGlobal = prevEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(prevEp.slug) + '&server=' + serverIdx : null;
 
       const prevBtn = prevEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(prevEp.slug) + '&server=' + serverIdx + '\'">⏮ Tập trước</button>' : '';
       const nextBtn = nextEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx + '\'">Tập sau ⏭</button>' : '';
@@ -226,8 +231,8 @@
           forwardBtn.addEventListener('click', () => showIndicator('forwardIndicator'));
         }
 
-        // ====== Thêm nút Tập sau cạnh âm lượng ======
-        if (nextEpUrlGlobal) {
+        // ====== Thêm nút Tập trước + Tập sau cạnh âm lượng ======
+        if (nextEpUrlGlobal || prevEpUrlGlobal) {
           const controls = plyrEl.querySelector('.plyr__controls');
           if (controls) {
             let insertAfter = controls.querySelector('.plyr__volume') || controls.querySelector('[data-plyr="mute"]');
@@ -235,16 +240,33 @@
               while (insertAfter.parentNode && insertAfter.parentNode !== controls) {
                 insertAfter = insertAfter.parentNode;
               }
-              const nextBtn = document.createElement('button');
-              nextBtn.type = 'button';
-              nextBtn.className = 'plyr__control plyr__control--next';
-              nextBtn.setAttribute('aria-label', 'Tập sau');
-              nextBtn.innerHTML = SVG_NEXT + '<span class="plyr__tooltip" role="tooltip">Tập sau</span>';
-              nextBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.location.href = nextEpUrlGlobal;
-              });
-              insertAfter.parentNode.insertBefore(nextBtn, insertAfter.nextSibling);
+              // Thêm nút Tập trước
+              if (prevEpUrlGlobal) {
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button';
+                prevBtn.className = 'plyr__control plyr__control--prev';
+                prevBtn.setAttribute('aria-label', 'Tập trước');
+                prevBtn.innerHTML = SVG_PREV + '<span class="plyr__tooltip" role="tooltip">Tập trước</span>';
+                prevBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  window.location.href = prevEpUrlGlobal;
+                });
+                insertAfter.parentNode.insertBefore(prevBtn, insertAfter.nextSibling);
+                insertAfter = prevBtn;
+              }
+              // Thêm nút Tập sau (sau prev)
+              if (nextEpUrlGlobal) {
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button';
+                nextBtn.className = 'plyr__control plyr__control--next';
+                nextBtn.setAttribute('aria-label', 'Tập sau');
+                nextBtn.innerHTML = SVG_NEXT + '<span class="plyr__tooltip" role="tooltip">Tập sau</span>';
+                nextBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  window.location.href = nextEpUrlGlobal;
+                });
+                insertAfter.parentNode.insertBefore(nextBtn, insertAfter.nextSibling);
+              }
             }
           }
         }
