@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r8"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r9"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -26,10 +26,9 @@
       --plyr-range-thumb-background: #e50914;
       --plyr-control-radius: 6px;
     }
-    .plyr { border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); position: relative; }
+    .plyr { border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     .plyr:fullscreen { border-radius: 0; }
     .plyr:-webkit-full-screen { border-radius: 0; }
-    .plyr--fullscreen-fallback { border-radius: 0 !important; }
     .plyr__menu__container { backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
     .plyr__control--overlaid { background: var(--plyr-color-main); box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5); }
     .plyr__control--overlaid:hover { background: #f40612; }
@@ -51,28 +50,29 @@
     }
     .player-container { max-width: 1200px; margin: 0 auto 28px; animation: fadeInUp 0.6s ease-out; position: relative; }
 
-    /* ============ TAP ZONES: middle PASS-THROUGH, left/right CONSUME tap ============ */
+    /* Tap zones - chỉ ON MOBILE TOUCH */
     .tap-overlay {
       position: absolute; top: 0; left: 0; right: 0;
-      height: calc(100% - 80px); /* trừ controls bar */
+      height: calc(100% - 80px);
       display: flex;
       z-index: 5;
       pointer-events: none;
     }
+    /* CHỈ ON TOUCH device thì enable tap-zones */
+    @media (hover: none) and (pointer: coarse) {
+      .tap-zone.side { pointer-events: auto; }
+    }
     .tap-zone {
       flex: 1;
-      pointer-events: auto; /* zone left/right BẮT click */
       display: flex; align-items: center; justify-content: center;
       position: relative;
+      pointer-events: none;
       -webkit-tap-highlight-color: transparent;
     }
-    .tap-zone.middle {
-      flex: 1.2;
-      pointer-events: none; /* zone giữa CHO QUA → Plyr handle pause */
-    }
+    .tap-zone.middle { flex: 1.4; }
 
     .seek-indicator {
-      width: 96px; height: 96px;
+      width: 90px; height: 90px;
       border-radius: 50%;
       background: rgba(0, 0, 0, 0.72);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -85,17 +85,13 @@
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
       border: 2px solid rgba(255, 255, 255, 0.2);
     }
-    .seek-indicator svg { width: 38px; height: 38px; color: white; }
+    .seek-indicator svg { width: 34px; height: 34px; color: white; }
     .seek-indicator .number { font-size: 13px; line-height: 1; font-weight: 800; margin-top: -2px; }
     .seek-indicator.show { opacity: 1; transform: scale(1); }
     @media (max-width: 720px) {
-      .seek-indicator { width: 78px; height: 78px; }
-      .seek-indicator svg { width: 30px; height: 30px; }
+      .seek-indicator { width: 76px; height: 76px; }
+      .seek-indicator svg { width: 28px; height: 28px; }
       .seek-indicator .number { font-size: 12px; }
-    }
-    /* Trong landscape orientation, giảm height tap-overlay */
-    @media (max-width: 920px) and (orientation: landscape) {
-      .tap-overlay { height: calc(100% - 60px); }
     }
 
     .video-info-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--bg-secondary); border-radius: 10px; margin-top: 16px; flex-wrap: wrap; gap: 12px; }
@@ -122,9 +118,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r8"></script>
-  <script src="js/storage.js?v=20260514r8"></script>
-  <script src="js/common.js?v=20260514r8"></script>
+  <script src="js/api.js?v=20260514r9"></script>
+  <script src="js/storage.js?v=20260514r9"></script>
+  <script src="js/common.js?v=20260514r9"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -179,24 +175,22 @@
       nextEpUrlGlobal = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
       prevEpUrlGlobal = prevEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(prevEp.slug) + '&server=' + serverIdx : null;
 
-      const prevBtn = prevEp ? '<button onclick="location.href=\'' + prevEpUrlGlobal + '\'">⏮ Tập trước</button>' : '';
-      const nextBtn = nextEp ? '<button onclick="location.href=\'' + nextEpUrlGlobal + '\'">Tập sau ⏭</button>' : '';
+      const prevBtnHtml = prevEp ? '<button onclick="location.href=\'' + prevEpUrlGlobal + '\'">⏮ Tập trước</button>' : '';
+      const nextBtnHtml = nextEp ? '<button onclick="location.href=\'' + nextEpUrlGlobal + '\'">Tập sau ⏭</button>' : '';
 
       document.getElementById('watchContent').innerHTML =
         '<div class="player-container">' +
           '<video id="videoPlayer" playsinline webkit-playsinline controls></video>' +
           '<div class="tap-overlay" id="tapOverlay">' +
-            '<div class="tap-zone left" data-action="rewind">' +
+            '<div class="tap-zone side" data-action="rewind">' +
               '<div class="seek-indicator" id="rewindIndicator">' +
-                SVG_REWIND_ROUND +
-                '<div class="number">10</div>' +
+                SVG_REWIND_ROUND + '<div class="number">10</div>' +
               '</div>' +
             '</div>' +
             '<div class="tap-zone middle"></div>' +
-            '<div class="tap-zone right" data-action="forward">' +
+            '<div class="tap-zone side" data-action="forward">' +
               '<div class="seek-indicator" id="forwardIndicator">' +
-                SVG_FORWARD_ROUND +
-                '<div class="number">10</div>' +
+                SVG_FORWARD_ROUND + '<div class="number">10</div>' +
               '</div>' +
             '</div>' +
           '</div>' +
@@ -206,8 +200,8 @@
               '<div class="ep">Đang xem: <strong>' + currentEp.name + '</strong></div>' +
             '</div>' +
             '<div class="quick-actions">' +
-              prevBtn +
-              nextBtn +
+              prevBtnHtml +
+              nextBtnHtml +
               '<button onclick="location.href=\'movie.html?slug=' + slug + '\'">ⓘ Chi tiết</button>' +
             '</div>' +
           '</div>' +
@@ -219,44 +213,52 @@
       initTapZones();
     }
 
+    /* Tap zones logic - YouTube style */
     function initTapZones() {
-      const zones = document.querySelectorAll('.tap-zone[data-action]');
+      const sides = document.querySelectorAll('.tap-zone.side');
       const video = document.getElementById('videoPlayer');
+      if (!video) return;
 
-      zones.forEach(zone => {
+      sides.forEach(zone => {
         let lastTap = 0;
+        let pendingTimer = null;
 
-        // Touch device: double-tap detection
         zone.addEventListener('touchend', (e) => {
-          e.preventDefault(); // chặn click giả lập
+          e.preventDefault();
           const now = Date.now();
           if (now - lastTap < 350) {
-            // Double tap
+            // DOUBLE-TAP: seek + cancel pending pause toggle
+            clearTimeout(pendingTimer);
+            pendingTimer = null;
             doSeek(zone.dataset.action, video);
             lastTap = 0;
           } else {
+            // FIRST-TAP: schedule pause toggle after 350ms
             lastTap = now;
+            clearTimeout(pendingTimer);
+            pendingTimer = setTimeout(() => {
+              togglePlay(video);
+              pendingTimer = null;
+            }, 350);
           }
         }, { passive: false });
 
-        // Desktop: double-click
+        // Desktop dblclick
         zone.addEventListener('dblclick', (e) => {
           e.preventDefault();
           doSeek(zone.dataset.action, video);
         });
-
-        // Single click → toggle play/pause như Plyr
-        zone.addEventListener('click', (e) => {
-          // Nếu là double-click thứ 2, đã xử lý ở dblclick
-          if (e.detail === 2) return;
-          // Đợi 200ms xem có phải double không
-          setTimeout(() => {
-            if (e.defaultPrevented) return;
-            if (video.paused) video.play();
-            else video.pause();
-          }, 250);
-        });
       });
+    }
+
+    function togglePlay(video) {
+      if (plyrInstance) {
+        if (plyrInstance.playing) plyrInstance.pause();
+        else plyrInstance.play();
+      } else {
+        if (video.paused) video.play();
+        else video.pause();
+      }
     }
 
     function setupAfterPlyrReady() {
@@ -264,7 +266,6 @@
       const video = document.getElementById('videoPlayer');
       if (!plyrEl || !video) return;
 
-      // ====== Replace Plyr rewind/forward icons ======
       setTimeout(() => {
         const rewindBtn = plyrEl.querySelector('[data-plyr="rewind"]');
         const forwardBtn = plyrEl.querySelector('[data-plyr="fast-forward"]');
@@ -279,7 +280,6 @@
           forwardBtn.addEventListener('click', () => showIndicator('forwardIndicator'));
         }
 
-        // ====== Inject Prev + Next buttons ======
         if (nextEpUrlGlobal || prevEpUrlGlobal) {
           const controls = plyrEl.querySelector('.plyr__controls');
           if (controls) {
@@ -318,7 +318,6 @@
         }
       }, 100);
 
-      // Keyboard J/L
       document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         const key = e.key.toLowerCase();
@@ -415,7 +414,6 @@
         clickToPlay: true,
         keyboard: { focused: true, global: true },
         tooltips: { controls: true, seek: true },
-        fullscreen: { enabled: true, fallback: 'force', iosNative: false, container: '.player-container' },
         i18n: {
           restart: 'Phát lại', rewind: 'Lùi 10s', play: 'Phát', pause: 'Tạm dừng',
           fastForward: 'Tiến 10s', seek: 'Tua', played: 'Đã xem', buffered: 'Đã tải',
