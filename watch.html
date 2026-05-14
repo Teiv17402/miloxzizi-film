@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r21"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r22"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -203,9 +203,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r21"></script>
-  <script src="js/storage.js?v=20260514r21"></script>
-  <script src="js/common.js?v=20260514r21"></script>
+  <script src="js/api.js?v=20260514r22"></script>
+  <script src="js/storage.js?v=20260514r22"></script>
+  <script src="js/common.js?v=20260514r22"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -360,63 +360,10 @@
       const video = document.getElementById('videoPlayer');
       if (!plyrEl || !video) return;
 
-      // CSS fullscreen mode → mọi JS handlers work bình thường
-      // Block dblclick trên video để Plyr không toggle fullscreen
-      // Đồng thời add SEEK functionality
-      let lastTap = { time: 0, x: 0 };
-
-      function tryDoubleTapSeek(clientX, isPaused) {
-        const rect = plyrEl.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const halfX = rect.width / 2;
-        const margin = rect.width * 0.18;
-        if (x < halfX - margin) {
-          // Lùi 10s
-          video.currentTime = Math.max(0, video.currentTime - 10);
-          // Undo pause toggle từ click đầu
-          if (isPaused && plyrInstance) plyrInstance.play();
-          else if (!isPaused && plyrInstance) plyrInstance.pause();
-          return true;
-        } else if (x > halfX + margin) {
-          // Tiến 10s
-          video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
-          if (isPaused && plyrInstance) plyrInstance.play();
-          else if (!isPaused && plyrInstance) plyrInstance.pause();
-          return true;
-        }
-        return false;
-      }
-
-      plyrEl.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.plyr__controls')) return;
-        if (e.target.closest('.plyr__menu')) return;
-        // Chặn Plyr toggle fullscreen
+      // Minimal: chỉ chặn dblclick default trên video (không cần JS phức tạp)
+      video.addEventListener('dblclick', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        // Trạng thái pause LÚC TRƯỚC click đầu = ngược với hiện tại (vì click đầu đã toggle)
-        const wasPaused = !video.paused;
-        tryDoubleTapSeek(e.clientX, wasPaused);
-      }, { capture: true });
-
-      // Mobile touchend - detect double-tap
-      plyrEl.addEventListener('touchend', (e) => {
-        if (e.target.closest('.plyr__controls')) return;
-        if (e.target.closest('.plyr__menu')) return;
-        if (e.changedTouches.length === 0) return;
-        const touch = e.changedTouches[0];
-        const now = Date.now();
-        const x = touch.clientX;
-        if (now - lastTap.time < 350 && Math.abs(x - lastTap.x) < 100) {
-          // Double-tap detected
-          const wasPaused = !video.paused;
-          if (tryDoubleTapSeek(x, wasPaused)) {
-            e.preventDefault();
-          }
-          lastTap = { time: 0, x: 0 };
-        } else {
-          lastTap = { time: now, x: x };
-        }
-      }, { passive: false });
+      });
 
       setTimeout(() => {
         const rewindBtn = plyrEl.querySelector('[data-plyr="rewind"]');
@@ -536,12 +483,6 @@
         clickToPlay: true,
         keyboard: { focused: true, global: true },
         tooltips: { controls: true, seek: true },
-        fullscreen: {
-          enabled: true,
-          fallback: 'force',
-          iosNative: false,
-          container: '.player-container'
-        },
         i18n: {
           restart: 'Phát lại', rewind: 'Lùi 10s', play: 'Phát', pause: 'Tạm dừng',
           fastForward: 'Tiến 10s', seek: 'Tua', played: 'Đã xem', buffered: 'Đã tải',
