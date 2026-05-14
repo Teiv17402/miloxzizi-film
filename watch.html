@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r14"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r15"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -193,9 +193,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r14"></script>
-  <script src="js/storage.js?v=20260514r14"></script>
-  <script src="js/common.js?v=20260514r14"></script>
+  <script src="js/api.js?v=20260514r15"></script>
+  <script src="js/storage.js?v=20260514r15"></script>
+  <script src="js/common.js?v=20260514r15"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -259,7 +259,7 @@
         '<div class="player-container" id="playerContainer">' +
           '<button class="mini-close" id="miniCloseBtn" aria-label="Đóng mini player">✕</button>' +
           '<button class="mini-expand" id="miniExpandBtn" aria-label="Phóng to lại">⤢</button>' +
-          '<video id="videoPlayer" playsinline webkit-playsinline autopictureinpicture x-webkit-airplay="allow" controls></video>' +
+          '<video id="videoPlayer" playsinline webkit-playsinline controls></video>' +
           '<div class="video-info-bar">' +
             '<div class="title-group">' +
               '<h1>' + movie.name + '</h1>' +
@@ -277,8 +277,50 @@
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
       bindServerTabs();
       initMiniPlayer();
-      initAutoPiP();
       initDoubleClickSeek();
+      initAutoFullscreen();
+    }
+
+    /* ====== AUTO FULLSCREEN khi xoay ngang ====== */
+    function initAutoFullscreen() {
+      const video = document.getElementById('videoPlayer');
+      if (!video) return;
+
+      function checkAndToggleFullscreen() {
+        if (!plyrInstance) return;
+        const isLandscape = window.innerWidth > window.innerHeight;
+        // Chỉ tự fullscreen trên mobile (width <= 1000px)
+        if (window.innerWidth > 1000) return;
+        const isInFullscreen = plyrInstance.fullscreen && plyrInstance.fullscreen.active;
+
+        if (isLandscape && !isInFullscreen && !video.paused) {
+          // Xoay ngang + đang play → vào fullscreen
+          try {
+            plyrInstance.fullscreen.enter();
+          } catch (err) {
+            console.log('Auto fullscreen blocked:', err.message);
+          }
+        } else if (!isLandscape && isInFullscreen) {
+          // Xoay dọc lại → thoát fullscreen
+          try {
+            plyrInstance.fullscreen.exit();
+          } catch (err) {}
+        }
+      }
+
+      // Listen orientation change (3 cách để cover mọi browser)
+      window.addEventListener('orientationchange', () => {
+        setTimeout(checkAndToggleFullscreen, 300);
+      });
+      if (screen.orientation) {
+        screen.orientation.addEventListener('change', () => {
+          setTimeout(checkAndToggleFullscreen, 300);
+        });
+      }
+      window.addEventListener('resize', () => {
+        clearTimeout(window._resizeTimer);
+        window._resizeTimer = setTimeout(checkAndToggleFullscreen, 200);
+      });
     }
 
     /* ====== DOUBLE-CLICK / DOUBLE-TAP để SEEK 10s ====== */
@@ -358,37 +400,7 @@
       }
     }
 
-    /* ====== AUTO PICTURE-IN-PICTURE khi rời tab/app ====== */
-    function initAutoPiP() {
-      const video = document.getElementById('videoPlayer');
-      if (!video) return;
 
-      // Khi user rời tab/app → cố gắng vào PiP
-      document.addEventListener('visibilitychange', async () => {
-        if (document.hidden && !video.paused) {
-          // Browser hidden → try enter PiP
-          try {
-            if (document.pictureInPictureEnabled && !document.pictureInPictureElement) {
-              await video.requestPictureInPicture();
-            }
-          } catch (err) {
-            // Browser blocked auto-PiP (cần user click nút PiP thủ công)
-            console.log('Auto-PiP blocked:', err.message);
-          }
-        } else if (!document.hidden && document.pictureInPictureElement) {
-          // Quay lại tab → thoát PiP
-          try { await document.exitPictureInPicture(); } catch (e) {}
-        }
-      });
-
-      // Khi user click nút PiP của Plyr → mở rộng để dễ click
-      video.addEventListener('enterpictureinpicture', () => {
-        console.log('Đã vào PiP mode');
-      });
-      video.addEventListener('leavepictureinpicture', () => {
-        console.log('Đã thoát PiP mode');
-      });
-    }
 
     /* ====== MINI PLAYER (KHÔNG hoạt động trong fullscreen) ====== */
     function isFullscreen() {
@@ -570,7 +582,7 @@
 
     function getPlyrConfig() {
       return {
-        controls: ['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'pip', 'fullscreen'],
+        controls: ['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
         settings: ['quality', 'speed'],
         speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
         seekTime: 10,
