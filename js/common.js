@@ -45,7 +45,7 @@ function renderFooter() {
   return `
     <footer>
       <p>© 2026 MiloxZizi Film - Website xem phim của bạn | Powered by VietLe</p>
-      <p style="margin-top:8px;font-size:12px;">Mục đích học tập. Mọi nội dung phim thuộc về VietLe</p>
+      <p style="margin-top:8px;font-size:12px;">Mục đích học tập. Vui lòng không share nhiều hihi:))</p>
     </footer>
   `;
 }
