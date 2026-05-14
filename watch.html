@@ -41,34 +41,66 @@
     .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .quick-actions button { padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 500; }
     .quick-actions button:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-glow); }
-    /* CRITICAL: tap-zones chỉ enable trên touch device, mặc định ẩn */
+
+    /* ============ YOUTUBE-STYLE SEEK BUTTON ============ */
     .tap-zones { display: none; }
     @media (hover: none) and (pointer: coarse) {
       .tap-zones {
         display: flex;
         position: absolute; top: 0; left: 0; right: 0;
-        height: calc(100% - 70px); /* trừ phần controls dưới đáy */
+        height: calc(100% - 70px);
         pointer-events: none; z-index: 2;
       }
       .tap-zone {
         flex: 1; pointer-events: auto;
         display: flex; align-items: center; justify-content: center;
+        position: relative;
       }
       .tap-zone.center {
         flex: 0.7;
-        pointer-events: none; /* vùng giữa để click vào video */
+        pointer-events: none;
       }
     }
-    .tap-zone .seek-indicator {
-      position: absolute; padding: 12px 20px;
-      background: rgba(0,0,0,0.75); border-radius: 50px;
-      color: white; font-size: 14px; font-weight: 600;
-      opacity: 0; transform: scale(0.8);
-      transition: opacity 0.3s, transform 0.3s;
-      display: flex; align-items: center; gap: 6px;
-      backdrop-filter: blur(10px); pointer-events: none;
+    /* Round seek button (YouTube-style) */
+    .seek-indicator {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: white; font-weight: 700;
+      opacity: 0; transform: scale(0.6);
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.15);
     }
-    .tap-zone .seek-indicator.show { opacity: 1; transform: scale(1); }
+    .seek-indicator .arrows {
+      font-size: 22px; line-height: 1;
+      letter-spacing: -2px; margin-bottom: 4px;
+      color: #fff;
+    }
+    .seek-indicator .number {
+      font-size: 16px; line-height: 1;
+      font-weight: 800; letter-spacing: 0.5px;
+    }
+    .seek-indicator.show {
+      opacity: 1;
+      transform: scale(1);
+      animation: seekPulse 0.6s ease-out;
+    }
+    @keyframes seekPulse {
+      0% { transform: scale(0.6); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    @media (max-width: 720px) {
+      .seek-indicator { width: 80px; height: 80px; }
+      .seek-indicator .arrows { font-size: 18px; }
+      .seek-indicator .number { font-size: 14px; }
+    }
+
     @media (max-width: 720px) {
       .video-info-bar { padding: 14px; flex-direction: column; align-items: stretch; }
       .video-info-bar .title-group { text-align: center; }
@@ -98,7 +130,6 @@
     const serverIdx = parseInt(getQueryParam('server')) || 0;
     let plyrInstance = null;
     let hlsInstance = null;
-    let nextEpUrlGlobal = null;
 
     if (!slug) {
       document.getElementById('watchContent').innerHTML = '<div class="empty-state">Thiếu thông tin phim.</div>';
@@ -126,7 +157,7 @@
       const currentIdx = eps.findIndex(e => e.slug === currentEp.slug);
       const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
       const prevEp = currentIdx > 0 ? eps[currentIdx - 1] : null;
-      nextEpUrlGlobal = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
+      const nextEpUrl = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
 
       const prevBtn = prevEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(prevEp.slug) + '&server=' + serverIdx + '\'">⏮ Tập trước</button>' : '';
       const nextBtn = nextEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx + '\'">Tập sau ⏭</button>' : '';
@@ -135,9 +166,19 @@
         '<div class="player-container">' +
           '<video id="videoPlayer" playsinline controls></video>' +
           '<div class="tap-zones" id="tapZones">' +
-            '<div class="tap-zone" data-action="rewind"><div class="seek-indicator" id="rewindIndicator">⏪ -10s</div></div>' +
+            '<div class="tap-zone" data-action="rewind">' +
+              '<div class="seek-indicator" id="rewindIndicator">' +
+                '<div class="arrows">◄◄</div>' +
+                '<div class="number">10</div>' +
+              '</div>' +
+            '</div>' +
             '<div class="tap-zone center"></div>' +
-            '<div class="tap-zone" data-action="forward"><div class="seek-indicator" id="forwardIndicator">+10s ⏩</div></div>' +
+            '<div class="tap-zone" data-action="forward">' +
+              '<div class="seek-indicator" id="forwardIndicator">' +
+                '<div class="arrows">►►</div>' +
+                '<div class="number">10</div>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
           '<div class="video-info-bar">' +
             '<div class="title-group">' +
@@ -153,16 +194,14 @@
         '</div>' +
         renderEpisodes(episodes, currentEp.slug, serverIdx);
 
-      initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
+      initPlyrPlayer(currentEp.link_m3u8, nextEpUrl);
       bindServerTabs();
       initTapZones();
     }
 
     function initTapZones() {
-      // Chỉ enable double-tap seek trên touch device (mobile/tablet)
       const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
       if (!isTouch) {
-        // Desktop: ẩn tap-zones hoàn toàn để click pass through Plyr
         const zones = document.getElementById('tapZones');
         if (zones) zones.style.display = 'none';
         return;
@@ -188,7 +227,6 @@
             lastTap = { time: 0, target: null };
           } else {
             lastTap = { time: now, target: zone };
-            // Single tap: không preventDefault, để Plyr nhận
           }
         }, { passive: false });
       });
@@ -197,9 +235,12 @@
     function showIndicator(id) {
       const el = document.getElementById(id);
       if (!el) return;
+      el.classList.remove('show');
+      // Force reflow để restart animation
+      void el.offsetWidth;
       el.classList.add('show');
       clearTimeout(el._timer);
-      el._timer = setTimeout(() => el.classList.remove('show'), 700);
+      el._timer = setTimeout(() => el.classList.remove('show'), 600);
     }
 
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
