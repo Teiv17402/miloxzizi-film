@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r10"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r11"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -48,59 +48,118 @@
       }
       .plyr__control--next svg, .plyr__control--prev svg { width: 20px; height: 20px; }
     }
-    .player-container { max-width: 1200px; margin: 0 auto 28px; animation: fadeInUp 0.6s ease-out; position: relative; }
-
-    /* Tap zones - chỉ ON MOBILE TOUCH */
-    .tap-overlay {
-      position: absolute; top: 0; left: 0; right: 0;
-      height: calc(100% - 90px); /* tăng bottom space cho controls */
-      display: flex;
-      z-index: 5;
-      pointer-events: none;
-    }
-    /* CHỈ ON TOUCH device thì enable tap-zones */
-    @media (hover: none) and (pointer: coarse) {
-      .tap-zone.side { pointer-events: auto; }
-    }
-    .tap-zone {
-      flex: 1;
-      display: flex; align-items: center; justify-content: center;
+    .player-container {
+      max-width: 1200px; margin: 0 auto 28px;
+      animation: fadeInUp 0.6s ease-out;
       position: relative;
-      pointer-events: none;
-      -webkit-tap-highlight-color: transparent;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .tap-zone.middle { flex: 1.4; }
+    .player-sentinel { height: 1px; }
 
-    .seek-indicator {
-      width: 90px; height: 90px;
+    /* ============ MINI PLAYER (YouTube-style) ============ */
+    .player-container.mini-mode {
+      position: fixed !important;
+      bottom: 20px;
+      right: 20px;
+      width: 340px;
+      max-width: calc(100vw - 30px);
+      margin: 0;
+      z-index: 998;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .player-container.mini-mode .video-info-bar {
+      padding: 8px 12px;
+      margin-top: 0;
+      border-radius: 0;
+      background: rgba(20, 20, 20, 0.98);
+      gap: 6px;
+    }
+    .player-container.mini-mode .video-info-bar .title-group h1 {
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .player-container.mini-mode .video-info-bar .title-group .ep { font-size: 11px; }
+    .player-container.mini-mode .quick-actions { display: none; }
+    .player-container.mini-mode .plyr { border-radius: 0; box-shadow: none; }
+
+    /* Nút đóng mini */
+    .mini-close {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 28px; height: 28px;
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.72);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: white; font-weight: 700;
-      opacity: 0; transform: scale(0.6);
-      transition: opacity 0.35s, transform 0.35s;
-      pointer-events: none;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
+      font-weight: 700;
+      transition: background 0.2s;
     }
-    .seek-indicator svg { width: 34px; height: 34px; color: white; }
-    .seek-indicator .number { font-size: 13px; line-height: 1; font-weight: 800; margin-top: -2px; }
-    .seek-indicator.show { opacity: 1; transform: scale(1); }
+    .mini-close:hover { background: var(--accent); }
+    .player-container.mini-mode .mini-close { display: flex; }
+
+    /* Nút phóng to lại từ mini */
+    .mini-expand {
+      position: absolute;
+      top: 6px; left: 6px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .mini-expand:hover { background: var(--accent); }
+    .player-container.mini-mode .mini-expand { display: flex; }
+
     @media (max-width: 720px) {
-      .seek-indicator { width: 76px; height: 76px; }
-      .seek-indicator svg { width: 28px; height: 28px; }
-      .seek-indicator .number { font-size: 12px; }
+      .player-container.mini-mode {
+        width: calc(100vw - 20px);
+        bottom: 10px;
+        right: 10px;
+      }
+      .player-container.mini-mode .video-info-bar .title-group h1 { max-width: 150px; }
     }
 
-    .video-info-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--bg-secondary); border-radius: 10px; margin-top: 16px; flex-wrap: wrap; gap: 12px; }
+    .video-info-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; background: var(--bg-secondary);
+      border-radius: 10px; margin-top: 16px;
+      flex-wrap: wrap; gap: 12px;
+    }
     .video-info-bar .title-group h1 { font-size: 22px; margin: 0 0 4px; }
     .video-info-bar .title-group .ep { color: var(--text-secondary); font-size: 14px; }
     .video-info-bar .title-group .ep strong { color: var(--accent); }
     .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .quick-actions button { padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 500; }
-    .quick-actions button:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-glow); }
+    .quick-actions button {
+      padding: 10px 16px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-primary); cursor: pointer;
+      font-size: 13px; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+      min-height: 44px; font-weight: 500;
+    }
+    .quick-actions button:hover {
+      background: var(--accent); border-color: var(--accent);
+      transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-glow);
+    }
     @media (max-width: 720px) {
       .video-info-bar { padding: 14px; flex-direction: column; align-items: stretch; }
       .video-info-bar .title-group { text-align: center; }
@@ -118,9 +177,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r10"></script>
-  <script src="js/storage.js?v=20260514r10"></script>
-  <script src="js/common.js?v=20260514r10"></script>
+  <script src="js/api.js?v=20260514r11"></script>
+  <script src="js/storage.js?v=20260514r11"></script>
+  <script src="js/common.js?v=20260514r11"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -132,6 +191,7 @@
     let hlsInstance = null;
     let nextEpUrlGlobal = null;
     let prevEpUrlGlobal = null;
+    let userClosedMini = false; // Nếu user đóng mini, không tự bật lại
 
     const SVG_REWIND_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
       '<path d="M12 4 A8 8 0 1 0 19 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
@@ -179,21 +239,11 @@
       const nextBtnHtml = nextEp ? '<button onclick="location.href=\'' + nextEpUrlGlobal + '\'">Tập sau ⏭</button>' : '';
 
       document.getElementById('watchContent').innerHTML =
-        '<div class="player-container">' +
+        '<div class="player-sentinel" id="playerSentinel"></div>' +
+        '<div class="player-container" id="playerContainer">' +
+          '<button class="mini-close" id="miniCloseBtn" aria-label="Đóng mini player">✕</button>' +
+          '<button class="mini-expand" id="miniExpandBtn" aria-label="Phóng to lại">⤢</button>' +
           '<video id="videoPlayer" playsinline webkit-playsinline controls></video>' +
-          '<div class="tap-overlay" id="tapOverlay">' +
-            '<div class="tap-zone side" data-action="rewind">' +
-              '<div class="seek-indicator" id="rewindIndicator">' +
-                SVG_REWIND_ROUND + '<div class="number">10</div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="tap-zone middle"></div>' +
-            '<div class="tap-zone side" data-action="forward">' +
-              '<div class="seek-indicator" id="forwardIndicator">' +
-                SVG_FORWARD_ROUND + '<div class="number">10</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
           '<div class="video-info-bar">' +
             '<div class="title-group">' +
               '<h1>' + movie.name + '</h1>' +
@@ -210,37 +260,54 @@
 
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
       bindServerTabs();
-      initTapZones();
+      initMiniPlayer();
     }
 
-    /* Tap zones - CHỈ double-tap seek, single tap KHÔNG làm gì (tránh pause nhầm) */
-    function initTapZones() {
-      const sides = document.querySelectorAll('.tap-zone.side');
-      const video = document.getElementById('videoPlayer');
-      if (!video) return;
+    /* ====== MINI PLAYER ====== */
+    function initMiniPlayer() {
+      const container = document.getElementById('playerContainer');
+      const sentinel = document.getElementById('playerSentinel');
+      const closeBtn = document.getElementById('miniCloseBtn');
+      const expandBtn = document.getElementById('miniExpandBtn');
+      if (!container || !sentinel) return;
 
-      sides.forEach(zone => {
-        let lastTap = 0;
-
-        zone.addEventListener('touchend', (e) => {
-          const now = Date.now();
-          if (now - lastTap < 350) {
-            // DOUBLE-TAP: SEEK
-            e.preventDefault();
-            doSeek(zone.dataset.action, video);
-            lastTap = 0;
-          } else {
-            // FIRST-TAP: chỉ record, KHÔNG làm gì (tránh interfere với Plyr)
-            lastTap = now;
+      // Detect khi sentinel ra khỏi viewport → chuyển sang mini mode
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const isVisible = entry.isIntersecting || entry.intersectionRatio > 0;
+          if (!isVisible && !userClosedMini) {
+            // Kiểm tra video đang play mới chuyển mini
+            const video = document.getElementById('videoPlayer');
+            if (video && !video.paused) {
+              container.classList.add('mini-mode');
+            }
+          } else if (isVisible) {
+            container.classList.remove('mini-mode');
           }
-        }, { passive: false });
-
-        // Desktop double-click
-        zone.addEventListener('dblclick', (e) => {
-          e.preventDefault();
-          doSeek(zone.dataset.action, video);
         });
-      });
+      }, { threshold: 0, rootMargin: '-50px 0px 0px 0px' });
+
+      observer.observe(sentinel);
+
+      // Đóng mini player → pause và ẩn
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          userClosedMini = true;
+          container.classList.remove('mini-mode');
+          container.style.display = 'none';
+          if (plyrInstance) plyrInstance.pause();
+        });
+      }
+
+      // Phóng to lại → scroll về player
+      if (expandBtn) {
+        expandBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          container.classList.remove('mini-mode');
+          sentinel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     }
 
     function setupAfterPlyrReady() {
@@ -254,12 +321,10 @@
         if (rewindBtn) {
           const tooltip = rewindBtn.querySelector('.plyr__tooltip');
           rewindBtn.innerHTML = SVG_REWIND_ROUND + (tooltip ? tooltip.outerHTML : '<span class="plyr__tooltip" role="tooltip">Lùi 10s</span>');
-          rewindBtn.addEventListener('click', () => showIndicator('rewindIndicator'));
         }
         if (forwardBtn) {
           const tooltip = forwardBtn.querySelector('.plyr__tooltip');
           forwardBtn.innerHTML = SVG_FORWARD_ROUND + (tooltip ? tooltip.outerHTML : '<span class="plyr__tooltip" role="tooltip">Tiến 10s</span>');
-          forwardBtn.addEventListener('click', () => showIndicator('forwardIndicator'));
         }
 
         if (nextEpUrlGlobal || prevEpUrlGlobal) {
@@ -299,34 +364,6 @@
           }
         }
       }, 100);
-
-      document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        const key = e.key.toLowerCase();
-        if (key === 'j' || key === 'arrowleft') showIndicator('rewindIndicator');
-        else if (key === 'l' || key === 'arrowright') showIndicator('forwardIndicator');
-      });
-    }
-
-    function doSeek(action, video) {
-      if (!video) return;
-      if (action === 'rewind') {
-        video.currentTime = Math.max(0, video.currentTime - 10);
-        showIndicator('rewindIndicator');
-      } else if (action === 'forward') {
-        video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
-        showIndicator('forwardIndicator');
-      }
-    }
-
-    function showIndicator(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.remove('show');
-      void el.offsetWidth;
-      el.classList.add('show');
-      clearTimeout(el._timer);
-      el._timer = setTimeout(() => el.classList.remove('show'), 700);
     }
 
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
