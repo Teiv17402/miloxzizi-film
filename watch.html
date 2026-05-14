@@ -27,7 +27,6 @@
     .plyr__menu__container { backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
     .plyr__control--overlaid { background: var(--plyr-color-main); box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5); }
     .plyr__control--overlaid:hover { background: #f40612; }
-    /* Tăng kích thước nút control trên mobile */
     .plyr__control { padding: 8px !important; }
     .plyr--video .plyr__control svg { width: 20px; height: 20px; }
     @media (max-width: 720px) {
@@ -42,6 +41,34 @@
     .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .quick-actions button { padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 500; }
     .quick-actions button:hover { background: var(--accent); border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-glow); }
+    /* CRITICAL: tap-zones chỉ enable trên touch device, mặc định ẩn */
+    .tap-zones { display: none; }
+    @media (hover: none) and (pointer: coarse) {
+      .tap-zones {
+        display: flex;
+        position: absolute; top: 0; left: 0; right: 0;
+        height: calc(100% - 70px); /* trừ phần controls dưới đáy */
+        pointer-events: none; z-index: 2;
+      }
+      .tap-zone {
+        flex: 1; pointer-events: auto;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .tap-zone.center {
+        flex: 0.7;
+        pointer-events: none; /* vùng giữa để click vào video */
+      }
+    }
+    .tap-zone .seek-indicator {
+      position: absolute; padding: 12px 20px;
+      background: rgba(0,0,0,0.75); border-radius: 50px;
+      color: white; font-size: 14px; font-weight: 600;
+      opacity: 0; transform: scale(0.8);
+      transition: opacity 0.3s, transform 0.3s;
+      display: flex; align-items: center; gap: 6px;
+      backdrop-filter: blur(10px); pointer-events: none;
+    }
+    .tap-zone .seek-indicator.show { opacity: 1; transform: scale(1); }
     @media (max-width: 720px) {
       .video-info-bar { padding: 14px; flex-direction: column; align-items: stretch; }
       .video-info-bar .title-group { text-align: center; }
@@ -71,6 +98,7 @@
     const serverIdx = parseInt(getQueryParam('server')) || 0;
     let plyrInstance = null;
     let hlsInstance = null;
+    let nextEpUrlGlobal = null;
 
     if (!slug) {
       document.getElementById('watchContent').innerHTML = '<div class="empty-state">Thiếu thông tin phim.</div>';
@@ -98,6 +126,7 @@
       const currentIdx = eps.findIndex(e => e.slug === currentEp.slug);
       const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
       const prevEp = currentIdx > 0 ? eps[currentIdx - 1] : null;
+      nextEpUrlGlobal = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
 
       const prevBtn = prevEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(prevEp.slug) + '&server=' + serverIdx + '\'">⏮ Tập trước</button>' : '';
       const nextBtn = nextEp ? '<button onclick="location.href=\'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx + '\'">Tập sau ⏭</button>' : '';
@@ -124,22 +153,28 @@
         '</div>' +
         renderEpisodes(episodes, currentEp.slug, serverIdx);
 
-      const nextEpUrl = nextEp ? 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(nextEp.slug) + '&server=' + serverIdx : null;
-      initPlyrPlayer(currentEp.link_m3u8, nextEpUrl);
+      initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
       bindServerTabs();
       initTapZones();
     }
 
     function initTapZones() {
+      // Chỉ enable double-tap seek trên touch device (mobile/tablet)
+      const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+      if (!isTouch) {
+        // Desktop: ẩn tap-zones hoàn toàn để click pass through Plyr
+        const zones = document.getElementById('tapZones');
+        if (zones) zones.style.display = 'none';
+        return;
+      }
       const zones = document.querySelectorAll('.tap-zones .tap-zone[data-action]');
       let lastTap = { time: 0, target: null };
-
       zones.forEach(zone => {
-        zone.addEventListener('click', (e) => {
+        zone.addEventListener('touchend', (e) => {
           const now = Date.now();
           if (lastTap.target === zone && now - lastTap.time < 350) {
-            // Double tap detected
             e.preventDefault();
+            e.stopPropagation();
             const action = zone.dataset.action;
             const video = document.getElementById('videoPlayer');
             if (!video) return;
@@ -147,14 +182,15 @@
               video.currentTime = Math.max(0, video.currentTime - 10);
               showIndicator('rewindIndicator');
             } else if (action === 'forward') {
-              video.currentTime = Math.min(video.duration, video.currentTime + 10);
+              video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
               showIndicator('forwardIndicator');
             }
             lastTap = { time: 0, target: null };
           } else {
             lastTap = { time: now, target: zone };
+            // Single tap: không preventDefault, để Plyr nhận
           }
-        });
+        }, { passive: false });
       });
     }
 
@@ -163,7 +199,7 @@
       if (!el) return;
       el.classList.add('show');
       clearTimeout(el._timer);
-      el._timer = setTimeout(() => el.classList.remove('show'), 600);
+      el._timer = setTimeout(() => el.classList.remove('show'), 700);
     }
 
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
@@ -202,7 +238,7 @@
               }
             }
           };
-          config.i18n = { qualityLabel: { 0: 'Auto' } };
+          config.i18n = Object.assign(config.i18n || {}, { qualityLabel: { 0: 'Auto' } });
           config.settings = ['quality', 'speed'];
         } else {
           config.settings = ['speed'];
@@ -228,6 +264,7 @@
         settings: ['quality', 'speed'],
         speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
         seekTime: 10,
+        clickToPlay: true,
         keyboard: { focused: true, global: true },
         tooltips: { controls: true, seek: true },
         i18n: {
