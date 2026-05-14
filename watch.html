@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r9"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r10"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -53,7 +53,7 @@
     /* Tap zones - chỉ ON MOBILE TOUCH */
     .tap-overlay {
       position: absolute; top: 0; left: 0; right: 0;
-      height: calc(100% - 80px);
+      height: calc(100% - 90px); /* tăng bottom space cho controls */
       display: flex;
       z-index: 5;
       pointer-events: none;
@@ -118,9 +118,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r9"></script>
-  <script src="js/storage.js?v=20260514r9"></script>
-  <script src="js/common.js?v=20260514r9"></script>
+  <script src="js/api.js?v=20260514r10"></script>
+  <script src="js/storage.js?v=20260514r10"></script>
+  <script src="js/common.js?v=20260514r10"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -213,7 +213,7 @@
       initTapZones();
     }
 
-    /* Tap zones logic - YouTube style */
+    /* Tap zones - CHỈ double-tap seek, single tap KHÔNG làm gì (tránh pause nhầm) */
     function initTapZones() {
       const sides = document.querySelectorAll('.tap-zone.side');
       const video = document.getElementById('videoPlayer');
@@ -221,44 +221,26 @@
 
       sides.forEach(zone => {
         let lastTap = 0;
-        let pendingTimer = null;
 
         zone.addEventListener('touchend', (e) => {
-          e.preventDefault();
           const now = Date.now();
           if (now - lastTap < 350) {
-            // DOUBLE-TAP: seek + cancel pending pause toggle
-            clearTimeout(pendingTimer);
-            pendingTimer = null;
+            // DOUBLE-TAP: SEEK
+            e.preventDefault();
             doSeek(zone.dataset.action, video);
             lastTap = 0;
           } else {
-            // FIRST-TAP: schedule pause toggle after 350ms
+            // FIRST-TAP: chỉ record, KHÔNG làm gì (tránh interfere với Plyr)
             lastTap = now;
-            clearTimeout(pendingTimer);
-            pendingTimer = setTimeout(() => {
-              togglePlay(video);
-              pendingTimer = null;
-            }, 350);
           }
         }, { passive: false });
 
-        // Desktop dblclick
+        // Desktop double-click
         zone.addEventListener('dblclick', (e) => {
           e.preventDefault();
           doSeek(zone.dataset.action, video);
         });
       });
-    }
-
-    function togglePlay(video) {
-      if (plyrInstance) {
-        if (plyrInstance.playing) plyrInstance.pause();
-        else plyrInstance.play();
-      } else {
-        if (video.paused) video.play();
-        else video.pause();
-      }
     }
 
     function setupAfterPlyrReady() {
