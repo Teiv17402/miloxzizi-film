@@ -560,3 +560,21 @@ footer p { margin: 4px 0; text-align: center; }
   .hero-content .desc { font-size: 12px; }
   .btn.btn-large { padding: 9px 14px; font-size: 12px; }
 }
+
+/* ============ Safe area for iPhone notch ============ */
+header {
+  padding-top: env(safe-area-inset-top);
+}
+main {
+  padding-left: max(28px, env(safe-area-inset-left));
+  padding-right: max(28px, env(safe-area-inset-right));
+}
+@media (max-width: 720px) {
+  main {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+}
+footer {
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
+}

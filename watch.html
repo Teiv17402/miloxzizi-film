@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r15"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r16"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -183,6 +183,96 @@
       bottom: auto !important;
       right: auto !important;
     }
+
+    /* ============ FULLSCREEN OPTIMIZATIONS ============ */
+    /* Safe area cho iPhone notch / status bar */
+    .plyr:fullscreen,
+    .plyr:-webkit-full-screen,
+    .plyr--fullscreen-active,
+    .plyr--fullscreen-fallback {
+      background: #000;
+    }
+
+    /* Landscape fullscreen on mobile: tăng size controls, dễ chạm */
+    @media (max-width: 1024px) {
+      .plyr:fullscreen .plyr__controls,
+      .plyr:-webkit-full-screen .plyr__controls,
+      .plyr--fullscreen-active .plyr__controls,
+      .plyr--fullscreen-fallback .plyr__controls {
+        padding: 12px max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        gap: 8px;
+      }
+      .plyr:fullscreen .plyr__control,
+      .plyr:-webkit-full-screen .plyr__control,
+      .plyr--fullscreen-active .plyr__control,
+      .plyr--fullscreen-fallback .plyr__control {
+        padding: 12px !important;
+      }
+      .plyr:fullscreen .plyr__control svg,
+      .plyr:-webkit-full-screen .plyr__control svg,
+      .plyr--fullscreen-active .plyr__control svg,
+      .plyr--fullscreen-fallback .plyr__control svg {
+        width: 26px !important;
+        height: 26px !important;
+      }
+      .plyr:fullscreen .plyr__control[data-plyr="rewind"] svg,
+      .plyr:fullscreen .plyr__control[data-plyr="fast-forward"] svg,
+      .plyr:-webkit-full-screen .plyr__control[data-plyr="rewind"] svg,
+      .plyr:-webkit-full-screen .plyr__control[data-plyr="fast-forward"] svg,
+      .plyr--fullscreen-active .plyr__control[data-plyr="rewind"] svg,
+      .plyr--fullscreen-active .plyr__control[data-plyr="fast-forward"] svg,
+      .plyr--fullscreen-fallback .plyr__control[data-plyr="rewind"] svg,
+      .plyr--fullscreen-fallback .plyr__control[data-plyr="fast-forward"] svg {
+        width: 30px !important;
+        height: 30px !important;
+      }
+      .plyr:fullscreen .plyr__time,
+      .plyr:-webkit-full-screen .plyr__time,
+      .plyr--fullscreen-active .plyr__time,
+      .plyr--fullscreen-fallback .plyr__time {
+        font-size: 14px !important;
+      }
+      /* Big play button ở giữa khi pause */
+      .plyr:fullscreen .plyr__control--overlaid,
+      .plyr:-webkit-full-screen .plyr__control--overlaid,
+      .plyr--fullscreen-active .plyr__control--overlaid,
+      .plyr--fullscreen-fallback .plyr__control--overlaid {
+        padding: 24px !important;
+      }
+      .plyr:fullscreen .plyr__control--overlaid svg,
+      .plyr:-webkit-full-screen .plyr__control--overlaid svg,
+      .plyr--fullscreen-active .plyr__control--overlaid svg,
+      .plyr--fullscreen-fallback .plyr__control--overlaid svg {
+        width: 36px !important;
+        height: 36px !important;
+      }
+      /* Progress bar dày hơn dễ kéo */
+      .plyr:fullscreen .plyr__progress input[type=range],
+      .plyr:-webkit-full-screen .plyr__progress input[type=range],
+      .plyr--fullscreen-active .plyr__progress input[type=range],
+      .plyr--fullscreen-fallback .plyr__progress input[type=range] {
+        height: 24px;
+      }
+      .plyr:fullscreen .plyr__menu__container,
+      .plyr:-webkit-full-screen .plyr__menu__container,
+      .plyr--fullscreen-active .plyr__menu__container,
+      .plyr--fullscreen-fallback .plyr__menu__container {
+        margin-bottom: 16px;
+        font-size: 15px;
+      }
+    }
+
+    /* Landscape orientation: tuyệt đối không hiện mini player */
+    @media (orientation: landscape) and (max-width: 1024px) {
+      .player-container.mini-mode {
+        position: relative !important;
+        width: auto !important;
+        bottom: auto !important;
+        right: auto !important;
+        max-width: 1200px !important;
+        margin: 0 auto 28px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -193,9 +283,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r15"></script>
-  <script src="js/storage.js?v=20260514r15"></script>
-  <script src="js/common.js?v=20260514r15"></script>
+  <script src="js/api.js?v=20260514r16"></script>
+  <script src="js/storage.js?v=20260514r16"></script>
+  <script src="js/common.js?v=20260514r16"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
