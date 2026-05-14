@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r5"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r6"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -27,23 +27,31 @@
       --plyr-control-radius: 6px;
     }
     .plyr { border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-    .plyr:-webkit-full-screen { border-radius: 0; }
     .plyr:fullscreen { border-radius: 0; }
+    .plyr:-webkit-full-screen { border-radius: 0; }
     .plyr__menu__container { backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
     .plyr__control--overlaid { background: var(--plyr-color-main); box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5); }
     .plyr__control--overlaid:hover { background: #f40612; }
     .plyr__control { padding: 8px !important; }
     .plyr--video .plyr__control svg { width: 20px; height: 20px; }
-    /* Custom Next Episode button */
+    /* Custom rewind/forward icon styling */
+    .plyr__control[data-plyr="rewind"] svg,
+    .plyr__control[data-plyr="fast-forward"] svg {
+      width: 22px !important; height: 22px !important;
+    }
     .plyr__control--next svg { width: 18px; height: 18px; }
     @media (max-width: 720px) {
       .plyr__control { padding: 10px !important; }
       .plyr--video .plyr__control svg { width: 22px; height: 22px; }
+      .plyr__control[data-plyr="rewind"] svg,
+      .plyr__control[data-plyr="fast-forward"] svg {
+        width: 24px !important; height: 24px !important;
+      }
       .plyr__control--next svg { width: 20px; height: 20px; }
     }
     .player-container { max-width: 1200px; margin: 0 auto 28px; animation: fadeInUp 0.6s ease-out; position: relative; }
 
-    /* ============ SEEK INDICATORS - Curved arrow style ============ */
+    /* ============ SEEK INDICATORS overlay ============ */
     .seek-overlay {
       position: absolute; top: 0; left: 0; right: 0;
       height: calc(100% - 70px);
@@ -67,28 +75,12 @@
       pointer-events: none;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
       border: 2px solid rgba(255, 255, 255, 0.2);
-      position: relative;
     }
-    .seek-indicator svg { width: 38px; height: 38px; }
+    .seek-indicator svg { width: 38px; height: 38px; color: white; }
     .seek-indicator .number {
-      font-size: 13px; line-height: 1;
-      font-weight: 800; margin-top: -2px;
+      font-size: 13px; line-height: 1; font-weight: 800; margin-top: -2px;
     }
     .seek-indicator.show { opacity: 1; transform: scale(1); }
-    .seek-indicator.show svg {
-      animation: arrowSpin 0.5s ease-out;
-    }
-    @keyframes arrowSpin {
-      0% { transform: rotate(0); }
-      100% { transform: rotate(-60deg); }
-    }
-    .seek-indicator.forward.show svg {
-      animation: arrowSpinForward 0.5s ease-out;
-    }
-    @keyframes arrowSpinForward {
-      0% { transform: rotate(0); }
-      100% { transform: rotate(60deg); }
-    }
     @media (max-width: 720px) {
       .seek-indicator { width: 82px; height: 82px; }
       .seek-indicator svg { width: 32px; height: 32px; }
@@ -119,9 +111,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r5"></script>
-  <script src="js/storage.js?v=20260514r5"></script>
-  <script src="js/common.js?v=20260514r5"></script>
+  <script src="js/api.js?v=20260514r6"></script>
+  <script src="js/storage.js?v=20260514r6"></script>
+  <script src="js/common.js?v=20260514r6"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -133,9 +125,17 @@
     let hlsInstance = null;
     let nextEpUrlGlobal = null;
 
-    // SVG icons cho seek indicator (mũi tên cong giống Plyr/YouTube)
-    const SVG_REWIND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 4 3 9 8 9"/></svg>';
-    const SVG_FORWARD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 4 21 9 16 9"/></svg>';
+    /* SVG ICONS - tròn có chữ 10 (cho cả controls bar VÀ overlay) */
+    const SVG_REWIND_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M12 4 A8 8 0 1 0 19 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
+      '<path d="M12 1 L12 7 L7 4 Z" fill="currentColor"/>' +
+      '<text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="currentColor">10</text>' +
+      '</svg>';
+    const SVG_FORWARD_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M12 4 A8 8 0 1 1 5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
+      '<path d="M12 1 L12 7 L17 4 Z" fill="currentColor"/>' +
+      '<text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="currentColor">10</text>' +
+      '</svg>';
     const SVG_NEXT = '<svg viewBox="0 0 18 18" fill="currentColor"><path d="M14 4v10h-2V4h2zM4 4l8 5-8 5V4z"/></svg>';
 
     if (!slug) {
@@ -175,14 +175,14 @@
           '<div class="seek-overlay">' +
             '<div class="seek-zone-display">' +
               '<div class="seek-indicator rewind" id="rewindIndicator">' +
-                SVG_REWIND +
+                SVG_REWIND_ROUND +
                 '<div class="number">10</div>' +
               '</div>' +
             '</div>' +
             '<div class="seek-zone-display center"></div>' +
             '<div class="seek-zone-display">' +
               '<div class="seek-indicator forward" id="forwardIndicator">' +
-                SVG_FORWARD +
+                SVG_FORWARD_ROUND +
                 '<div class="number">10</div>' +
               '</div>' +
             '</div>' +
@@ -210,31 +210,45 @@
       const video = document.getElementById('videoPlayer');
       if (!plyrEl || !video) return;
 
-      // ====== Inject "Next episode" button vào controls bar ======
-      if (nextEpUrlGlobal) {
-        setTimeout(() => {
+      // ====== Replace Plyr rewind/forward icons với round "10" ======
+      setTimeout(() => {
+        const rewindBtn = plyrEl.querySelector('[data-plyr="rewind"]');
+        const forwardBtn = plyrEl.querySelector('[data-plyr="fast-forward"]');
+        if (rewindBtn) {
+          // Giữ lại tooltip span, thay svg
+          const tooltip = rewindBtn.querySelector('.plyr__tooltip');
+          rewindBtn.innerHTML = SVG_REWIND_ROUND + (tooltip ? tooltip.outerHTML : '<span class="plyr__tooltip" role="tooltip">Lùi 10s</span>');
+          rewindBtn.addEventListener('click', () => showIndicator('rewindIndicator'));
+        }
+        if (forwardBtn) {
+          const tooltip = forwardBtn.querySelector('.plyr__tooltip');
+          forwardBtn.innerHTML = SVG_FORWARD_ROUND + (tooltip ? tooltip.outerHTML : '<span class="plyr__tooltip" role="tooltip">Tiến 10s</span>');
+          forwardBtn.addEventListener('click', () => showIndicator('forwardIndicator'));
+        }
+
+        // ====== Thêm nút Tập sau cạnh âm lượng ======
+        if (nextEpUrlGlobal) {
           const controls = plyrEl.querySelector('.plyr__controls');
-          if (!controls) return;
-          // Tìm volume container hoặc mute button để insert sau đó
-          let insertAfter = controls.querySelector('.plyr__volume') || controls.querySelector('[data-plyr="mute"]');
-          if (!insertAfter) return;
-          // Tìm parent thực sự (container của volume)
-          while (insertAfter.parentNode && insertAfter.parentNode !== controls) {
-            insertAfter = insertAfter.parentNode;
+          if (controls) {
+            let insertAfter = controls.querySelector('.plyr__volume') || controls.querySelector('[data-plyr="mute"]');
+            if (insertAfter) {
+              while (insertAfter.parentNode && insertAfter.parentNode !== controls) {
+                insertAfter = insertAfter.parentNode;
+              }
+              const nextBtn = document.createElement('button');
+              nextBtn.type = 'button';
+              nextBtn.className = 'plyr__control plyr__control--next';
+              nextBtn.setAttribute('aria-label', 'Tập sau');
+              nextBtn.innerHTML = SVG_NEXT + '<span class="plyr__tooltip" role="tooltip">Tập sau</span>';
+              nextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.location.href = nextEpUrlGlobal;
+              });
+              insertAfter.parentNode.insertBefore(nextBtn, insertAfter.nextSibling);
+            }
           }
-          const nextBtn = document.createElement('button');
-          nextBtn.type = 'button';
-          nextBtn.className = 'plyr__control plyr__control--next';
-          nextBtn.setAttribute('aria-label', 'Tập sau');
-          nextBtn.setAttribute('title', 'Tập sau');
-          nextBtn.innerHTML = SVG_NEXT + '<span class="plyr__tooltip" role="tooltip">Tập sau</span>';
-          nextBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.href = nextEpUrlGlobal;
-          });
-          insertAfter.parentNode.insertBefore(nextBtn, insertAfter.nextSibling);
-        }, 300);
-      }
+        }
+      }, 100);
 
       // ====== Double-click desktop ======
       plyrEl.addEventListener('dblclick', (e) => {
@@ -253,7 +267,7 @@
         }
       });
 
-      // ====== Double-tap mobile (capture phase để chặn fullscreen exit) ======
+      // ====== Double-tap mobile ======
       let lastTap = { time: 0, x: 0 };
       plyrEl.addEventListener('touchstart', (e) => {
         if (e.target.closest('.plyr__controls')) return;
@@ -267,7 +281,6 @@
           const halfX = rect.width / 2;
           const margin = rect.width * 0.15;
           if (x < halfX - margin || x > halfX + margin) {
-            // Double-tap detected → CANCEL TOUCH EVENT để không thoát fullscreen
             e.preventDefault();
             e.stopPropagation();
             if (x < halfX - margin) doSeek('rewind', video);
@@ -278,14 +291,6 @@
         }
         lastTap = { time: now, x: x };
       }, { passive: false, capture: true });
-
-      // Hook nút ⏪⏩ trong controls
-      setTimeout(() => {
-        const rewindBtn = document.querySelector('[data-plyr="rewind"]');
-        const forwardBtn = document.querySelector('[data-plyr="fast-forward"]');
-        if (rewindBtn) rewindBtn.addEventListener('click', () => showIndicator('rewindIndicator'));
-        if (forwardBtn) forwardBtn.addEventListener('click', () => showIndicator('forwardIndicator'));
-      }, 300);
 
       // Keyboard J/L
       document.addEventListener('keydown', (e) => {
@@ -326,7 +331,7 @@
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = m3u8Url;
         plyrInstance = new Plyr(video, getPlyrConfig());
-        plyrInstance.on('ready', () => setupAfterPlyrReady());
+        plyrInstance.on('ready', setupAfterPlyrReady);
         if (nextEpUrl) plyrInstance.on('ended', () => { window.location.href = nextEpUrl; });
         return;
       }
@@ -360,7 +365,7 @@
           config.settings = ['speed'];
         }
         plyrInstance = new Plyr(video, config);
-        plyrInstance.on('ready', () => setupAfterPlyrReady());
+        plyrInstance.on('ready', setupAfterPlyrReady);
         if (nextEpUrl) plyrInstance.on('ended', () => { window.location.href = nextEpUrl; });
       });
       hlsInstance.on(Hls.Events.ERROR, (event, data) => {
@@ -384,7 +389,6 @@
         clickToPlay: true,
         keyboard: { focused: true, global: true },
         tooltips: { controls: true, seek: true },
-        fullscreen: { enabled: true, fallback: true, iosNative: false, container: '.player-container' },
         i18n: {
           restart: 'Phát lại', rewind: 'Lùi 10s', play: 'Phát', pause: 'Tạm dừng',
           fastForward: 'Tiến 10s', seek: 'Tua', played: 'Đã xem', buffered: 'Đã tải',
