@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chi tiết phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r23"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r24"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -21,9 +21,9 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/api.js?v=20260514r23"></script>
-  <script src="js/storage.js?v=20260514r23"></script>
-  <script src="js/common.js?v=20260514r23"></script>
+  <script src="js/api.js?v=20260514r24"></script>
+  <script src="js/storage.js?v=20260514r24"></script>
+  <script src="js/common.js?v=20260514r24"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -97,6 +97,12 @@
       favBtn.addEventListener('click', () => {
         const isNow = toggleFavorite(movie);
         favBtn.textContent = isNow ? '★ Đã thích' : '☆ Yêu thích';
+        // Toast confirm
+        const toast = document.createElement('div');
+        toast.textContent = isNow ? '✓ Đã thêm vào yêu thích' : '✗ Đã bỏ khỏi yêu thích';
+        toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4);font-weight:600;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
       });
 
       // Bind server tabs
