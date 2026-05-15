@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Phim yêu thích - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r24"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r25"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -35,9 +35,9 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/api.js?v=20260514r24"></script>
-  <script src="js/storage.js?v=20260514r24"></script>
-  <script src="js/common.js?v=20260514r24"></script>
+  <script src="js/api.js?v=20260514r25"></script>
+  <script src="js/storage.js?v=20260514r25"></script>
+  <script src="js/common.js?v=20260514r25"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader('favorites');
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -55,6 +55,7 @@
 
     function renderFavorites() {
       const favs = getFavorites();
+      console.log('[Favorites] Found', favs.length, 'items:', favs);
       if (favs.length === 0) {
         document.getElementById('favoritesList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa có phim yêu thích nào.<br/>Vào trang phim và nhấn <strong>★ Yêu thích</strong> để thêm.</div>';
         return;
@@ -89,6 +90,7 @@
 
     function renderHistory() {
       const history = getHistory();
+      console.log('[History] Found', history.length, 'items:', history);
       if (history.length === 0) {
         document.getElementById('historyList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa xem phim nào.</div>';
         return;
@@ -127,6 +129,11 @@
         renderHistory();
       }
     });
+
+    // Debug: confirm script loaded
+    console.log('[FavoritesPage] Script loaded, localStorage available:', isStorageAvailable());
+    console.log('[FavoritesPage] Raw favorites:', localStorage.getItem('phim_favorites'));
+    console.log('[FavoritesPage] Raw history:', localStorage.getItem('phim_history'));
 
     renderFavorites();
     renderHistory();
