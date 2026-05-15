@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Phim yêu thích - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r25"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r26"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -35,12 +35,16 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/api.js?v=20260514r25"></script>
-  <script src="js/storage.js?v=20260514r25"></script>
-  <script src="js/common.js?v=20260514r25"></script>
+  <script src="js/api.js?v=20260514r26"></script>
+  <script src="js/storage.js?v=20260514r26"></script>
+  <script src="js/common.js?v=20260514r26"></script>
   <script>
-    document.getElementById('header-container').innerHTML = renderHeader('favorites');
-    document.getElementById('footer-container').innerHTML = renderFooter();
+    try {
+      document.getElementById('header-container').innerHTML = renderHeader('favorites');
+      document.getElementById('footer-container').innerHTML = renderFooter();
+    } catch (e) {
+      console.error('Header/Footer error:', e);
+    }
 
     // Tab switching
     document.querySelectorAll('.server-tab').forEach(tab => {
@@ -54,73 +58,167 @@
     });
 
     function renderFavorites() {
-      const favs = getFavorites();
-      console.log('[Favorites] Found', favs.length, 'items:', favs);
-      if (favs.length === 0) {
-        document.getElementById('favoritesList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa có phim yêu thích nào.<br/>Vào trang phim và nhấn <strong>★ Yêu thích</strong> để thêm.</div>';
+      const container = document.getElementById('favoritesList');
+      if (!container) {
+        console.error('favoritesList container not found!');
         return;
       }
-      // Thêm nút xoá vào mỗi card
-      document.getElementById('favoritesList').innerHTML = favs.map(m => `
-        <div class="movie-card" style="position:relative;">
-          <a href="movie.html?slug=${m.slug}">
-            <div class="poster">
-              <img src="${getPosterUrl(m)}" alt="${m.name}" loading="lazy"
-                   onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 270%22><rect fill=%22%23222%22 width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
-            </div>
-            <div class="info">
-              <div class="name">${m.name}</div>
-              <div class="origin-name">${m.origin_name || ''} ${m.year ? '• ' + m.year : ''}</div>
-            </div>
-          </a>
-          <button class="btn btn-secondary remove-fav" data-slug="${m.slug}"
-                  style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;">✕</button>
-        </div>
-      `).join('');
 
-      document.querySelectorAll('.remove-fav').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+      let favs = [];
+      try {
+        favs = getFavorites();
+        console.log('[Favorites] Loaded', favs.length, 'items');
+      } catch (e) {
+        console.error('[Favorites] getFavorites error:', e);
+        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Lỗi đọc dữ liệu: ' + e.message + '</div>';
+        return;
+      }
+
+      if (!Array.isArray(favs) || favs.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Bạn chưa có phim yêu thích nào.<br/>Vào trang phim và nhấn <strong>★ Yêu thích</strong> để thêm.</div>';
+        return;
+      }
+
+      // Render từng card thủ công - tránh template literal phức tạp
+      container.innerHTML = '';
+      favs.forEach(m => {
+        const slug = (m && m.slug) ? m.slug : '';
+        const name = (m && m.name) ? m.name : '(không tên)';
+        const originName = (m && m.origin_name) ? m.origin_name : '';
+        const year = (m && m.year) ? m.year : '';
+        let poster = '';
+        try { poster = getPosterUrl(m) || ''; } catch (e) { poster = ''; }
+
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.style.position = 'relative';
+
+        const link = document.createElement('a');
+        link.href = 'movie.html?slug=' + slug;
+
+        const posterDiv = document.createElement('div');
+        posterDiv.className = 'poster';
+        const img = document.createElement('img');
+        img.src = poster;
+        img.alt = name;
+        img.loading = 'lazy';
+        img.onerror = function() { this.style.background = '#222'; this.style.minHeight = '270px'; this.src = ''; };
+        posterDiv.appendChild(img);
+        link.appendChild(posterDiv);
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        nameDiv.textContent = name;
+        const origDiv = document.createElement('div');
+        origDiv.className = 'origin-name';
+        origDiv.textContent = (originName ? originName : '') + (year ? ' • ' + year : '');
+        info.appendChild(nameDiv);
+        info.appendChild(origDiv);
+        link.appendChild(info);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-secondary remove-fav';
+        removeBtn.dataset.slug = slug;
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = 'position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;';
+        removeBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          removeFavorite(btn.dataset.slug);
+          removeFavorite(slug);
           renderFavorites();
         });
+
+        card.appendChild(link);
+        card.appendChild(removeBtn);
+        container.appendChild(card);
       });
+      console.log('[Favorites] Rendered', favs.length, 'cards');
     }
 
     function renderHistory() {
-      const history = getHistory();
-      console.log('[History] Found', history.length, 'items:', history);
-      if (history.length === 0) {
-        document.getElementById('historyList').innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Bạn chưa xem phim nào.</div>';
+      const container = document.getElementById('historyList');
+      if (!container) return;
+
+      let history = [];
+      try {
+        history = getHistory();
+        console.log('[History] Loaded', history.length, 'items');
+      } catch (e) {
+        console.error('[History] error:', e);
         return;
       }
-      document.getElementById('historyList').innerHTML = history.map(m => `
-        <div class="movie-card" style="position:relative;">
-          <a href="watch.html?slug=${m.slug}&ep=${encodeURIComponent(m.episodeSlug)}">
-            <div class="poster">
-              <img src="${getPosterUrl(m)}" alt="${m.name}" loading="lazy"
-                   onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 270%22><rect fill=%22%23222%22 width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
-              <div class="badges"><span class="badge">${m.episodeName || 'Tập 1'}</span></div>
-            </div>
-            <div class="info">
-              <div class="name">${m.name}</div>
-              <div class="origin-name">${new Date(m.watchedAt).toLocaleString('vi-VN')}</div>
-            </div>
-          </a>
-          <button class="btn btn-secondary remove-history" data-slug="${m.slug}"
-                  style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;">✕</button>
-        </div>
-      `).join('');
 
-      document.querySelectorAll('.remove-history').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+      if (!Array.isArray(history) || history.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Bạn chưa xem phim nào.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      history.forEach(m => {
+        const slug = (m && m.slug) ? m.slug : '';
+        const name = (m && m.name) ? m.name : '(không tên)';
+        const epName = (m && m.episodeName) ? m.episodeName : 'Tập 1';
+        const epSlug = (m && m.episodeSlug) ? m.episodeSlug : '';
+        const watchedAt = m && m.watchedAt ? new Date(m.watchedAt).toLocaleString('vi-VN') : '';
+        let poster = '';
+        try { poster = getPosterUrl(m) || ''; } catch (e) { poster = ''; }
+
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.style.position = 'relative';
+
+        const link = document.createElement('a');
+        link.href = 'watch.html?slug=' + slug + '&ep=' + encodeURIComponent(epSlug);
+
+        const posterDiv = document.createElement('div');
+        posterDiv.className = 'poster';
+        const img = document.createElement('img');
+        img.src = poster;
+        img.alt = name;
+        img.loading = 'lazy';
+        posterDiv.appendChild(img);
+
+        const badges = document.createElement('div');
+        badges.className = 'badges';
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = epName;
+        badges.appendChild(badge);
+        posterDiv.appendChild(badges);
+
+        link.appendChild(posterDiv);
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        nameDiv.textContent = name;
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'origin-name';
+        timeDiv.textContent = watchedAt;
+        info.appendChild(nameDiv);
+        info.appendChild(timeDiv);
+        link.appendChild(info);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-secondary remove-history';
+        removeBtn.dataset.slug = slug;
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = 'position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;';
+        removeBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          removeFromHistory(btn.dataset.slug);
+          removeFromHistory(slug);
           renderHistory();
         });
+
+        card.appendChild(link);
+        card.appendChild(removeBtn);
+        container.appendChild(card);
       });
+      console.log('[History] Rendered', history.length, 'cards');
     }
 
     document.getElementById('clearHistoryBtn').addEventListener('click', () => {
@@ -130,11 +228,10 @@
       }
     });
 
-    // Debug: confirm script loaded
-    console.log('[FavoritesPage] Script loaded, localStorage available:', isStorageAvailable());
+    // Initial render
+    console.log('[FavoritesPage] Script loaded');
     console.log('[FavoritesPage] Raw favorites:', localStorage.getItem('phim_favorites'));
     console.log('[FavoritesPage] Raw history:', localStorage.getItem('phim_history'));
-
     renderFavorites();
     renderHistory();
   </script>
