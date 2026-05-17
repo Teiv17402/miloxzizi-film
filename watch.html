@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260514r30"/>
+  <link rel="stylesheet" href="css/style.css?v=20260514r31"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -203,9 +203,9 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/api.js?v=20260514r30"></script>
-  <script src="js/storage.js?v=20260514r30"></script>
-  <script src="js/common.js?v=20260514r30"></script>
+  <script src="js/api.js?v=20260514r31"></script>
+  <script src="js/storage.js?v=20260514r31"></script>
+  <script src="js/common.js?v=20260514r31"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -326,6 +326,35 @@
       }, { threshold: 0, rootMargin: '-50px 0px 0px 0px' });
 
       observer.observe(sentinel);
+
+      // MUTATION OBSERVER: watch body style và force unset overflow:hidden khi không fullscreen
+      const bodyObserver = new MutationObserver(() => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          const bStyle = document.body.style;
+          const hStyle = document.documentElement.style;
+          if (bStyle.overflow === 'hidden' || bStyle.overflowY === 'hidden') {
+            bStyle.overflow = '';
+            bStyle.overflowY = '';
+          }
+          if (hStyle.overflow === 'hidden' || hStyle.overflowY === 'hidden') {
+            hStyle.overflow = '';
+            hStyle.overflowY = '';
+          }
+        }
+      });
+      bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+      bodyObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+
+      // Periodic safety check (500ms) - chống Plyr set overflow giữa các events
+      setInterval(() => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          const bs = document.body.style;
+          if (bs.overflow === 'hidden' || bs.overflowY === 'hidden') {
+            bs.overflow = '';
+            bs.overflowY = '';
+          }
+        }
+      }, 500);
 
       // Listen fullscreen change → cleanup body + remove mini-mode
       const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
