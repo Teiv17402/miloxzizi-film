@@ -578,3 +578,19 @@ main {
 footer {
   padding-bottom: max(40px, env(safe-area-inset-bottom));
 }
+
+
+/* ============ Force body scrollable (fix Plyr leftover overflow:hidden) ============ */
+html, body {
+  overflow-y: auto !important;
+}
+body.plyr--fullscreen-active,
+body.plyr--fullscreen-fallback-overflow,
+:fullscreen body,
+:-webkit-full-screen body {
+  overflow: hidden !important;
+}
+/* When NOT in fullscreen, ensure scroll works */
+body:not(.plyr--fullscreen-active):not(.plyr--fullscreen-fallback-overflow) {
+  overflow-y: auto !important;
+}
