@@ -32,7 +32,8 @@
     926078120,   // MILOX-VIP-001
     926078121,   // MILOX-VIP-002
     926078122,   // MILOX-VIP-003
-    2500694908   // TEST-2026
+    2500694908,  // TEST-2026
+    3562250222   // TungVu
   ];
 
   // Hàm hash (djb2, 32-bit unsigned) - PHẢI giống lúc tạo hash
