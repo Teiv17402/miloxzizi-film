@@ -64,6 +64,18 @@
   function clearActivation() { localStorage.removeItem(ACTIVATION_STORAGE_KEY); }
   window.deactivateKey = function () { clearActivation(); location.reload(); };
 
+  // Ghi nhật ký xem phim về backend (fire-and-forget). Gọi từ watch.html.
+  window.logView = function (movie, ep, slug) {
+    try {
+      const saved = getSaved();
+      if (!saved || !saved.key) return;
+      callApi({
+        action: 'log', key: saved.key, device: getDeviceId(),
+        movie: movie || '', ep: ep || '', slug: slug || ''
+      }).catch(function () {});
+    } catch (e) {}
+  };
+
   function errorMessage(res) {
     const code = res && res.error;
     switch (code) {

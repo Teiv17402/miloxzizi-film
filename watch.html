@@ -113,6 +113,7 @@
       }
       document.title = movie.name + ' - ' + currentEp.name + ' - MiloxZizi Film';
       saveHistory(movie, currentEp);
+      if (window.logView) logView(movie.name, currentEp.name, slug);
       const currentIdx = eps.findIndex(e => e.slug === currentEp.slug);
       const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
       const prevEp = currentIdx > 0 ? eps[currentIdx - 1] : null;
