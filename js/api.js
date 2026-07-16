@@ -50,95 +50,66 @@ async function getMovieDetail(slug) {
 }
 
 /**
- * Tìm kiếm phim theo từ khóa
- * @param {string} keyword - Từ khóa
- * @param {number} page - Số trang
- */
-async function searchMovies(keyword, page = 1) {
-  try {
-    const res = await fetch(
-      `${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${page}`
-    );
-    const data = await res.json();
-    return {
-      items: data?.data?.items || [],
-      pagination: data?.data?.params?.pagination || {}
-    };
-  } catch (err) {
-    console.error('Lỗi searchMovies:', err);
-    return { items: [], pagination: {} };
-  }
-}
-
-/**
- * Lấy danh sách phim theo loại
- * @param {string} type - 'phim-bo' | 'phim-le' | 'hoat-hinh' | 'tv-shows'
+ * Lọc phim - gộp chung mọi bộ lọc vào MỘT lời gọi.
+ *
+ * Trước đây mỗi bộ lọc là một hàm riêng và search.html chọn đúng một hàm bằng
+ * chuỗi else-if, nên chọn nhiều bộ lọc cùng lúc thì chỉ bộ lọc đầu tiên có tác
+ * dụng (VD "Phim bộ + Hàn Quốc" trả về cả phim lẻ, hoạt hình, TV show).
+ *
+ * API nhận thêm category/country/year làm query param trên mọi endpoint, nên ở
+ * đây ta chọn endpoint theo bộ lọc "hẹp" nhất rồi đính phần còn lại làm param.
+ *
+ * @param {Object} filters - { keyword, type, category, country, year }
  * @param {number} page
+ * @returns {Promise} { items: [], pagination: {} }
  */
-async function getMoviesByType(type, page = 1) {
-  try {
-    const res = await fetch(`${API_BASE}/v1/api/danh-sach/${type}?page=${page}`);
-    const data = await res.json();
-    return {
-      items: data?.data?.items || [],
-      pagination: data?.data?.params?.pagination || {}
-    };
-  } catch (err) {
-    console.error('Lỗi getMoviesByType:', err);
-    return { items: [], pagination: {} };
-  }
-}
+async function getFilteredMovies(filters, page = 1) {
+  const f = filters || {};
+  const keyword = f.keyword || '';
+  const type = f.type || '';
+  const category = f.category || '';
+  const country = f.country || '';
+  const year = f.year || '';
 
-/**
- * Lọc phim theo thể loại
- * @param {string} categorySlug - VD: 'hanh-dong', 'tinh-cam'
- */
-async function getMoviesByCategory(categorySlug, page = 1) {
-  try {
-    const res = await fetch(`${API_BASE}/v1/api/the-loai/${categorySlug}?page=${page}`);
-    const data = await res.json();
-    return {
-      items: data?.data?.items || [],
-      pagination: data?.data?.params?.pagination || {}
-    };
-  } catch (err) {
-    console.error('Lỗi getMoviesByCategory:', err);
-    return { items: [], pagination: {} };
-  }
-}
+  const qs = new URLSearchParams();
+  qs.set('page', page);
+  let path;
 
-/**
- * Lọc phim theo quốc gia
- * @param {string} countrySlug - VD: 'han-quoc', 'trung-quoc', 'au-my'
- */
-async function getMoviesByCountry(countrySlug, page = 1) {
-  try {
-    const res = await fetch(`${API_BASE}/v1/api/quoc-gia/${countrySlug}?page=${page}`);
-    const data = await res.json();
-    return {
-      items: data?.data?.items || [],
-      pagination: data?.data?.params?.pagination || {}
-    };
-  } catch (err) {
-    console.error('Lỗi getMoviesByCountry:', err);
-    return { items: [], pagination: {} };
+  if (keyword) {
+    // Lưu ý: tim-kiem nhận category/country/year nhưng KHÔNG nhận type.
+    path = '/v1/api/tim-kiem';
+    qs.set('keyword', keyword);
+    if (category) qs.set('category', category);
+    if (country) qs.set('country', country);
+    if (year) qs.set('year', year);
+  } else if (type) {
+    path = '/v1/api/danh-sach/' + type;
+    if (category) qs.set('category', category);
+    if (country) qs.set('country', country);
+    if (year) qs.set('year', year);
+  } else if (category) {
+    path = '/v1/api/the-loai/' + category;
+    if (country) qs.set('country', country);
+    if (year) qs.set('year', year);
+  } else if (country) {
+    path = '/v1/api/quoc-gia/' + country;
+    if (year) qs.set('year', year);
+  } else if (year) {
+    path = '/v1/api/nam/' + year;
+  } else {
+    // Không lọc gì -> danh sách phim mới cập nhật.
+    return getNewMovies(page);
   }
-}
 
-/**
- * Lọc phim theo năm
- * @param {number|string} year
- */
-async function getMoviesByYear(year, page = 1) {
   try {
-    const res = await fetch(`${API_BASE}/v1/api/nam/${year}?page=${page}`);
+    const res = await fetch(`${API_BASE}${path}?${qs.toString()}`);
     const data = await res.json();
     return {
       items: data?.data?.items || [],
       pagination: data?.data?.params?.pagination || {}
     };
   } catch (err) {
-    console.error('Lỗi getMoviesByYear:', err);
+    console.error('Lỗi getFilteredMovies:', err);
     return { items: [], pagination: {} };
   }
 }

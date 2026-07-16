@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tìm kiếm phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r36"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r37"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -47,10 +47,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20260717r36"></script>
-  <script src="js/api.js?v=20260717r36"></script>
-  <script src="js/storage.js?v=20260717r36"></script>
-  <script src="js/common.js?v=20260717r36"></script>
+  <script src="js/auth.js?v=20260717r37"></script>
+  <script src="js/api.js?v=20260717r37"></script>
+  <script src="js/storage.js?v=20260717r37"></script>
+  <script src="js/common.js?v=20260717r37"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -113,30 +113,30 @@
       showLoading('movieList');
       document.getElementById('pagination').innerHTML = '';
 
-      let result;
+      // Gửi TẤT CẢ bộ lọc đang bật trong một lời gọi. Trước đây dùng chuỗi
+      // else-if nên chỉ bộ lọc đầu tiên có tác dụng.
+      const result = await getFilteredMovies({ keyword, type, category, country, year }, page);
+
+      // Tiêu đề phải phản ánh đúng mọi bộ lọc đang bật, không chỉ một cái.
+      const typeNames = {
+        'phim-bo': 'Phim bộ',
+        'phim-le': 'Phim lẻ',
+        'hoat-hinh': 'Hoạt hình',
+        'tv-shows': 'TV Shows'
+      };
+      const parts = [];
+      // Khi có từ khóa thì API tim-kiem không nhận type -> không hiện type ở
+      // tiêu đề, tránh nói dối là đã lọc trong khi thực tế không lọc.
+      if (type && !keyword) parts.push(typeNames[type] || type);
+      if (category) parts.push(CATEGORIES.find(c => c.slug === category)?.name || category);
+      if (country) parts.push(COUNTRIES.find(c => c.slug === country)?.name || country);
+      if (year) parts.push('Năm ' + year);
       if (keyword) {
-        result = await searchMovies(keyword, page);
-      } else if (category) {
-        result = await getMoviesByCategory(category, page);
-        document.getElementById('pageTitle').textContent = 'Thể loại: ' + (CATEGORIES.find(c => c.slug === category)?.name || category);
-      } else if (country) {
-        result = await getMoviesByCountry(country, page);
-        document.getElementById('pageTitle').textContent = 'Quốc gia: ' + (COUNTRIES.find(c => c.slug === country)?.name || country);
-      } else if (year) {
-        result = await getMoviesByYear(year, page);
-        document.getElementById('pageTitle').textContent = 'Năm: ' + year;
-      } else if (type) {
-        result = await getMoviesByType(type, page);
-        const typeNames = {
-          'phim-bo': 'Phim bộ',
-          'phim-le': 'Phim lẻ',
-          'hoat-hinh': 'Hoạt hình',
-          'tv-shows': 'TV Shows'
-        };
-        document.getElementById('pageTitle').textContent = typeNames[type] || type;
+        document.getElementById('pageTitle').textContent =
+          `Kết quả tìm: "${keyword}"` + (parts.length ? ' - ' + parts.join(' - ') : '');
       } else {
-        result = await getNewMovies(page);
-        document.getElementById('pageTitle').textContent = 'Tất cả phim';
+        document.getElementById('pageTitle').textContent =
+          parts.length ? parts.join(' - ') : 'Tất cả phim';
       }
 
       renderMovieList(result.items, 'movieList');
