@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260716r35"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r36"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -69,10 +69,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260716r35"></script>
-  <script src="js/api.js?v=20260716r35"></script>
-  <script src="js/storage.js?v=20260716r35"></script>
-  <script src="js/common.js?v=20260716r35"></script>
+  <script src="js/auth.js?v=20260717r36"></script>
+  <script src="js/api.js?v=20260717r36"></script>
+  <script src="js/storage.js?v=20260717r36"></script>
+  <script src="js/common.js?v=20260717r36"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -84,6 +84,73 @@
     let hlsInstance = null;
     let nextEpUrlGlobal = null;
     let prevEpUrlGlobal = null;
+
+    // --- Chống lỗi tiếng méo ("ồm ồm / giọng vịt robot") --------------------
+    let currentM3u8Url = null;    // để dựng lại player mà không phải tải lại trang
+    let pendingResume = 0;        // giây; > 0 nghĩa là đang dựng lại và cần tua về chỗ cũ
+    let pendingAutoplay = false;
+    let scrollGuardInstalled = false;
+    let mediaRecoverCount = 0;
+    let lastMediaRecover = 0;
+    let lastNetworkRetry = 0;
+
+    // Vòng đệm chẩn đoán: giữ lại cảnh báo của hls.js để soi khi lỗi xảy ra.
+    const audioDiag = [];
+    function diag(kind, msg) {
+      const v = document.getElementById('videoPlayer');
+      audioDiag.push({
+        gio: new Date().toISOString().slice(11, 19),
+        tai: v && isFinite(v.currentTime) ? +v.currentTime.toFixed(2) : null,
+        loai: kind,
+        chiTiet: String(msg).slice(0, 300)
+      });
+      if (audioDiag.length > 300) audioDiag.shift();
+    }
+    // Gõ __audioDiag() trong Console (F12) để xem nhật ký.
+    window.__audioDiag = function () { console.table(audioDiag); return audioDiag; };
+
+    // Logger riêng cho hls.js: chỉ giữ warn/error, phần còn lại no-op cho đỡ ồn.
+    // hls.js chấp nhận debug là object nhưng sẽ rơi về console cho hàm nào thiếu,
+    // nên phải khai báo đủ cả 6.
+    const hlsLogger = {
+      trace: function () {}, debug: function () {}, log: function () {}, info: function () {},
+      warn: function () { diag('hls.warn', Array.prototype.join.call(arguments, ' ')); },
+      error: function () { diag('hls.error', Array.prototype.join.call(arguments, ' ')); }
+    };
+
+    function showPlayerError(text) {
+      const c = document.querySelector('.player-container');
+      if (c) c.innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">' + text + '</div>';
+    }
+
+    // Dựng lại trình phát = tương đương F5 nhưng KHÔNG mất chỗ đang xem.
+    // Thay hẳn thẻ <video> để trình duyệt tạo mới bộ giải mã âm thanh - đây là
+    // cách duy nhất chắc chắn xoá được trạng thái decoder đã hỏng.
+    function rebuildPlayer() {
+      const container = document.querySelector('.player-container');
+      if (!container || !currentM3u8Url) return;
+      const oldVideo = document.getElementById('videoPlayer');
+      pendingResume = oldVideo && isFinite(oldVideo.currentTime) ? oldVideo.currentTime : 0;
+      pendingAutoplay = oldVideo ? !oldVideo.paused : true;
+      diag('rebuild', 'dung lai player @ ' + pendingResume.toFixed(2) + 's');
+
+      try { if (hlsInstance) hlsInstance.destroy(); } catch (e) {}
+      hlsInstance = null;
+      try { if (plyrInstance) plyrInstance.destroy(); } catch (e) {}
+      plyrInstance = null;
+
+      const stale = container.querySelector('.plyr') || container.querySelector('video');
+      const fresh = document.createElement('video');
+      fresh.id = 'videoPlayer';
+      fresh.setAttribute('playsinline', '');
+      fresh.setAttribute('webkit-playsinline', '');
+      fresh.controls = true;
+      if (stale && stale.parentNode) stale.parentNode.replaceChild(fresh, stale);
+      else container.insertBefore(fresh, container.firstChild);
+
+      initPlyrPlayer(currentM3u8Url, nextEpUrlGlobal);
+    }
+    window.rebuildPlayer = rebuildPlayer;
 
     const SVG_REWIND_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 A8 8 0 1 0 19 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M12 1 L12 7 L7 4 Z" fill="currentColor"/><text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="currentColor">10</text></svg>';
     const SVG_FORWARD_ROUND = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 A8 8 0 1 1 5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M12 1 L12 7 L17 4 Z" fill="currentColor"/><text x="12" y="16" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="currentColor">10</text></svg>';
@@ -134,6 +201,7 @@
             '<div class="quick-actions">' +
               prevBtnHtml +
               nextBtnHtml +
+              '<button onclick="rebuildPlayer()" title="Tiếng bị méo/ồm ồm? Bấm để dựng lại trình phát, không mất chỗ đang xem.">♪ Sửa tiếng</button>' +
               '<button onclick="location.href=\'movie.html?slug=' + slug + '\'">ⓘ Chi tiết</button>' +
             '</div>' +
           '</div>' +
@@ -160,12 +228,16 @@
           document.documentElement.style.overflowY = '';
         }
       }
-      // Run mỗi 200ms để clear bất kỳ overflow:hidden nào bị set ngầm
-      setInterval(ensureScroll, 200);
-      // Run cũng khi có event
-      ['play', 'pause', 'click'].forEach(evt => {
-        document.addEventListener(evt, ensureScroll, true);
-      });
+      // Run mỗi 200ms để clear bất kỳ overflow:hidden nào bị set ngầm.
+      // Chỉ gắn MỘT lần: rebuildPlayer() gọi lại hàm này nên nếu không chặn thì
+      // mỗi lần dựng lại sẽ chồng thêm một interval + một bộ listener nữa.
+      if (!scrollGuardInstalled) {
+        scrollGuardInstalled = true;
+        setInterval(ensureScroll, 200);
+        ['play', 'pause', 'click'].forEach(evt => {
+          document.addEventListener(evt, ensureScroll, true);
+        });
+      }
       ensureScroll();
 
       setTimeout(() => {
@@ -221,10 +293,14 @@
 
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
       const video = document.getElementById('videoPlayer');
-      if (!m3u8Url) {
-        document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Tập này chưa có link xem.</div>';
-        return;
-      }
+      currentM3u8Url = m3u8Url;
+      const resumeAt = pendingResume;
+      const resumePlay = pendingAutoplay;
+      pendingResume = 0;
+      pendingAutoplay = false;
+
+      if (!m3u8Url) { showPlayerError('Tập này chưa có link xem.'); return; }
+
       // Phải ưu tiên hls.js: Chrome/Edge/Firefox trả về "maybe" cho canPlayType HLS
       // nhưng KHÔNG phát được HLS natively (video.error code 4). Chỉ dùng native khi
       // hls.js không chạy được - tức Safari/iOS, nơi native HLS mới thực sự hoạt động.
@@ -234,12 +310,34 @@
           plyrInstance = new Plyr(video, getPlyrConfig());
           plyrInstance.on('ready', setupAfterPlyrReady);
           if (nextEpUrl) plyrInstance.on('ended', () => { window.location.href = nextEpUrl; });
+          if (resumeAt > 0) {
+            video.addEventListener('loadedmetadata', () => {
+              video.currentTime = resumeAt;
+              if (resumePlay) video.play().catch(() => {});
+            }, { once: true });
+          }
           return;
         }
-        document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Trình duyệt không hỗ trợ HLS.</div>';
+        showPlayerError('Trình duyệt không hỗ trợ HLS.');
         return;
       }
-      hlsInstance = new Hls({ capLevelToPlayerSize: false, startLevel: -1 });
+
+      hlsInstance = new Hls({
+        capLevelToPlayerSize: false,
+        startLevel: -1,
+        // Master m3u8 của CDN KHÔNG khai báo CODECS, nên hls.js không biết luồng này
+        // là AAC-LC. Khi vá khe hở ~60-90ms ở các điểm nối quảng cáo (đo được: 7 lần
+        // quanh phút 2:57, thêm 2 lần ở 14:58 và 15:28), nó gọi
+        // getSilentFrame(manifestCodec || track.codec). manifestCodec = undefined và
+        // track.codec bị Chrome ép thành 'mp4a.40.5', nên rơi vào nhánh default và
+        // chèn nhầm frame câm HE-AAC v2 vào luồng AAC-LC.
+        // Khai báo mặc định AAC-LC để frame chèn đúng loại.
+        // ĐÃ KIỂM CHỨNG trên Chrome thật: dòng này KHÔNG đổi codec của SourceBuffer
+        // (vẫn mp4a.40.5) và không đổi parsed codec - chỉ đổi frame câm được chèn.
+        defaultAudioCodec: 'mp4a.40.2',
+        startPosition: resumeAt > 0 ? resumeAt : -1,
+        debug: hlsLogger
+      });
       hlsInstance.loadSource(m3u8Url);
       hlsInstance.attachMedia(video);
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -267,15 +365,51 @@
         plyrInstance = new Plyr(video, config);
         plyrInstance.on('ready', setupAfterPlyrReady);
         if (nextEpUrl) plyrInstance.on('ended', () => { window.location.href = nextEpUrl; });
+        if (resumePlay) video.play().catch(() => {});
       });
+
       hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR: hlsInstance.startLoad(); break;
-            case Hls.ErrorTypes.MEDIA_ERROR: hlsInstance.recoverMediaError(); break;
-            default:
-              document.querySelector('.player-container').innerHTML = '<div class="empty-state" style="background:#000;padding:80px 20px;border-radius:12px;">Không phát được video.</div>';
+        // Ghi lại MỌI lỗi (kể cả non-fatal) để chẩn đoán, nhưng chỉ XỬ LÝ lỗi fatal.
+        // Cố "sửa" lỗi non-fatal sẽ phá cơ chế tự phục hồi sẵn có của hls.js.
+        diag(data.fatal ? 'fatal' : 'nonfatal', data.type + ' / ' + data.details);
+        if (!data.fatal) return;
+
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR: {
+            // Giữ hành vi cũ nhưng chặn vòng lặp thử lại liên tục.
+            const now = Date.now();
+            if (now - lastNetworkRetry < 1000) return;
+            lastNetworkRetry = now;
+            hlsInstance.startLoad();
+            break;
           }
+          case Hls.ErrorTypes.MEDIA_ERROR: {
+            // Mẫu chính thức của hls.js: debounce 5000ms rồi leo thang.
+            // KHÔNG dùng swapAudioCodec(): nó đã bị deprecate và với stream này
+            // sẽ lật codec sang mp4a.40.5 -> báo sai 88200Hz -> gây đúng lỗi
+            // tiếng méo mà ta đang chữa.
+            const now = Date.now();
+            if (now - lastMediaRecover > 5000) {
+              lastMediaRecover = now;
+              mediaRecoverCount = 1;
+              hlsInstance.recoverMediaError();
+            } else if (mediaRecoverCount === 1) {
+              lastMediaRecover = now;
+              mediaRecoverCount = 2;
+              setTimeout(rebuildPlayer, 0);   // tương đương F5, không mất chỗ xem
+            } else {
+              setTimeout(() => {
+                try { if (hlsInstance) hlsInstance.destroy(); } catch (e) {}
+                showPlayerError('Không phát được video. Vui lòng tải lại trang (F5).');
+              }, 0);
+            }
+            break;
+          }
+          default:
+            setTimeout(() => {
+              try { if (hlsInstance) hlsInstance.destroy(); } catch (e) {}
+              showPlayerError('Không phát được video.');
+            }, 0);
         }
       });
     }
