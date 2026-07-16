@@ -1,15 +1,15 @@
 /**
  * ============================================
- * API Module - Kết nối OPhim
+ * API Module - Kết nối KKPhim
  * ============================================
- * File này chứa tất cả các hàm gọi API của OPhim
- * Bạn chỉ cần sửa BASE_URL nếu OPhim đổi domain
+ * File này chứa tất cả các hàm gọi API phim
+ * Bạn chỉ cần sửa API_BASE nếu nguồn đổi domain
  */
 
-// Domain gốc của OPhim - có thể đổi sang ophim17.cc, ophim1.com, v.v...
-const API_BASE = 'https://ophim1.com';
-// CDN ảnh của OPhim - dùng để load poster phim
-const IMG_BASE = 'https://img.ophim.live/uploads/movies/';
+// Domain gốc của API - KKPhim, cùng cấu trúc JSON với OPhim
+const API_BASE = 'https://phimapi.com';
+// CDN ảnh - đường dẫn API trả về đã gồm sẵn 'uploads/movies/', nên KHÔNG thêm vào đây
+const IMG_BASE = 'https://phimimg.com/';
 
 /**
  * Lấy danh sách phim mới cập nhật
