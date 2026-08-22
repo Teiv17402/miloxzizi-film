@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r37"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r38"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -69,10 +69,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260717r37"></script>
-  <script src="js/api.js?v=20260717r37"></script>
-  <script src="js/storage.js?v=20260717r37"></script>
-  <script src="js/common.js?v=20260717r37"></script>
+  <script src="js/auth.js?v=20260717r38"></script>
+  <script src="js/api.js?v=20260717r38"></script>
+  <script src="js/storage.js?v=20260717r38"></script>
+  <script src="js/common.js?v=20260717r38"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -93,6 +93,108 @@
     let mediaRecoverCount = 0;
     let lastMediaRecover = 0;
     let lastNetworkRetry = 0;
+
+    // --- Tự bỏ quảng cáo chèn giữa phim ------------------------------------
+    // Quảng cáo trong stream nằm ở path KHÁC với path phim (vd convertv8/ hoặc
+    // /v8/<hash>/), luôn ~2:57 (~24s) và ~15:00 (~30s). Đã kiểm chứng ~152 phim:
+    // 0 lần cắt nhầm. Ta tính các khoảng QC từ danh sách fragment của hls.js rồi
+    // tua qua khi phát tới. Có chốt chặn 60s để KHÔNG BAO GIỜ tua nhầm cảnh phim.
+    let adRanges = [];
+    const AD_SKIP_LS_KEY = 'miloAutoSkipAds';
+    const AD_MAX_RUN_SEC = 60;                 // đoạn lạ > 60s coi là PHIM, không tua
+    const AD_PATH_RE = /\/(?:convertv\d+|v\d+\/[0-9a-f]{32})\/$/;  // mẫu path quảng cáo
+    const AD_HARDENING = true;                 // chỉ tua path đúng mẫu QC (hỏng = bỏ sót, an toàn)
+
+    function autoSkipEnabled() {                // MẶC ĐỊNH BẬT
+      try { return localStorage.getItem(AD_SKIP_LS_KEY) !== '0'; } catch (e) { return true; }
+    }
+    function setAutoSkip(on) {
+      try { localStorage.setItem(AD_SKIP_LS_KEY, on ? '1' : '0'); } catch (e) {}
+    }
+
+    function adDirOf(u) {
+      const i = u.lastIndexOf('/');
+      return i >= 0 ? u.slice(0, i + 1) : u;   // URL đến HẾT dấu '/' cuối
+    }
+
+    // Tính các khoảng quảng cáo từ danh sách fragment của hls.js.
+    function computeAdRanges(fragments) {
+      if (!fragments || !fragments.length) return [];
+      // 1) Thư mục phim = nơi chứa NHIỀU fragment nhất.
+      const counts = Object.create(null);
+      for (const f of fragments) {
+        if (!f || !f.url) continue;
+        const d = adDirOf(f.url);
+        counts[d] = (counts[d] || 0) + 1;
+      }
+      let dominant = null, best = -1;
+      for (const d in counts) if (counts[d] > best) { best = counts[d]; dominant = d; }
+      if (!dominant) return [];
+      // 2) Gom fragment "lạ" liên tiếp. SO SÁNH CHÍNH XÁC, không dùng startsWith
+      //    (QC break-1 nằm trong thư mục con của path phim -> prefix sẽ bỏ sót).
+      const runs = [];
+      let run = null;
+      for (const f of fragments) {
+        if (!f || !f.url || !isFinite(f.start)) continue;
+        const d = adDirOf(f.url);
+        if (d !== dominant) {
+          const end = f.start + (f.duration || 0);
+          if (!run) run = { start: f.start, end: end, dir: d };
+          else run.end = end;
+        } else if (run) { runs.push(run); run = null; }
+      }
+      if (run) runs.push(run);                 // QC ở cuối phim vẫn là kết thúc hợp lệ
+      // 3) Chốt chặn: cap thời lượng (bắt buộc) + mẫu path (khuyến nghị).
+      return runs
+        .map(r => ({ start: r.start, end: r.end, dur: r.end - r.start, dir: r.dir }))
+        .filter(r => r.dur <= AD_MAX_RUN_SEC && (!AD_HARDENING || AD_PATH_RE.test(r.dir)));
+    }
+
+    // Gắn bộ tua-qua-QC lên thẻ <video> (mỗi lần dựng lại player là 1 video mới).
+    function armAdSkip(video) {
+      if (!video || video.__adSkipArmed) return;
+      video.__adSkipArmed = true;
+      video.addEventListener('timeupdate', () => {
+        if (!autoSkipEnabled() || !adRanges.length) return;
+        const t = video.currentTime;
+        for (const r of adRanges) {
+          if (t >= r.start && t < r.end - 0.25) {
+            video.currentTime = r.end;         // fragment.start == currentTime -> tua thẳng
+            diag('adskip', 'tua ' + t.toFixed(2) + ' -> ' + r.end.toFixed(2));
+            showAdSkipToast();
+            break;
+          }
+        }
+      });
+    }
+
+    function showAdSkipToast() {
+      const c = document.querySelector('.player-container');
+      if (!c) return;
+      let el = c.querySelector('.ad-skip-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'ad-skip-toast';
+        el.textContent = 'Đã bỏ qua quảng cáo';
+        el.style.cssText = 'position:absolute;top:16px;left:16px;z-index:30;' +
+          'background:rgba(20,20,20,.92);color:#fff;padding:8px 14px;border-radius:8px;' +
+          'font-size:13px;font-weight:600;pointer-events:none;opacity:0;' +
+          'transition:opacity .25s;box-shadow:0 4px 16px rgba(0,0,0,.5);';
+        c.appendChild(el);
+      }
+      el.style.opacity = '1';
+      clearTimeout(el.__t);
+      el.__t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+    }
+
+    function refreshAdSkipToggle() {
+      const btn = document.getElementById('adSkipToggle');
+      if (btn) btn.textContent = autoSkipEnabled() ? '⏭ Bỏ QC: Bật' : '⏭ Bỏ QC: Tắt';
+    }
+    window.toggleAutoSkip = function () {
+      setAutoSkip(!autoSkipEnabled());
+      refreshAdSkipToggle();
+    };
 
     // Vòng đệm chẩn đoán: giữ lại cảnh báo của hls.js để soi khi lỗi xảy ra.
     const audioDiag = [];
@@ -201,6 +303,7 @@
             '<div class="quick-actions">' +
               prevBtnHtml +
               nextBtnHtml +
+              '<button id="adSkipToggle" onclick="toggleAutoSkip()" title="Tự động bỏ qua quảng cáo chèn giữa phim"></button>' +
               '<button onclick="rebuildPlayer()" title="Tiếng bị méo/ồm ồm? Bấm để dựng lại trình phát, không mất chỗ đang xem.">♪ Sửa tiếng</button>' +
               '<button onclick="location.href=\'movie.html?slug=' + slug + '\'">ⓘ Chi tiết</button>' +
             '</div>' +
@@ -209,6 +312,7 @@
         renderEpisodes(episodes, currentEp.slug, serverIdx);
 
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
+      refreshAdSkipToggle();
       bindServerTabs();
     }
 
@@ -293,6 +397,7 @@
 
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
       const video = document.getElementById('videoPlayer');
+      armAdSkip(video);
       currentM3u8Url = m3u8Url;
       const resumeAt = pendingResume;
       const resumePlay = pendingAutoplay;
@@ -340,6 +445,24 @@
       });
       hlsInstance.loadSource(m3u8Url);
       hlsInstance.attachMedia(video);
+
+      // Tính lại vùng quảng cáo mỗi khi playlist tải xong. Đọc fragments từ payload
+      // sự kiện (không từ hls.levels[currentLevel]) để chạy đúng cả khi currentLevel=-1
+      // và tự tính lại khi đổi chất lượng.
+      hlsInstance.on(Hls.Events.LEVEL_LOADED, (e, data) => {
+        try {
+          const frags = data && data.details && data.details.fragments;
+          adRanges = computeAdRanges(frags || []);
+          diag('adskip', 'vung QC=' + JSON.stringify(adRanges.map(r => [+r.start.toFixed(1), +r.end.toFixed(1)])));
+        } catch (err) { diag('adskip.err', err && err.message); }
+      });
+      hlsInstance.on(Hls.Events.LEVEL_UPDATED, (e, data) => {
+        try {
+          const frags = data && data.details && data.details.fragments;
+          if (frags && frags.length) adRanges = computeAdRanges(frags);
+        } catch (err) {}
+      });
+
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
         const availableQualities = hlsInstance.levels.map(l => l.height).filter(h => h > 0).sort((a, b) => b - a);
         const uniqueQualities = [...new Set(availableQualities)];
