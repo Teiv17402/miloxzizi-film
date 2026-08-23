@@ -79,10 +79,18 @@ function getHistory() {
   } catch { return []; }
 }
 
-function saveHistory(movie, episode, currentTime = 0) {
+function saveHistory(movie, episode, currentTime = 0, duration = 0) {
   try {
     if (!isStorageAvailable()) return;
     let history = getHistory();
+    // Giữ lại vị trí cũ nếu lần lưu này không kèm thời gian (vd lần lưu lúc mở phim),
+    // để không xoá mất chỗ đang xem đã lưu trước đó.
+    const prev = history.find(h => h.slug === movie.slug);
+    if ((!currentTime || currentTime <= 0) && prev && prev.currentTime > 0 &&
+        prev.episodeSlug === (episode?.slug || '')) {
+      currentTime = prev.currentTime;
+      if (!duration && prev.duration) duration = prev.duration;
+    }
     history = history.filter(h => h.slug !== movie.slug);
     history.unshift({
       slug: movie.slug,
@@ -92,11 +100,11 @@ function saveHistory(movie, episode, currentTime = 0) {
       episodeName: episode?.name || '',
       episodeSlug: episode?.slug || '',
       currentTime: currentTime,
+      duration: duration || 0,
       watchedAt: Date.now()
     });
     history = history.slice(0, 50);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
-    console.log('✓ Đã lưu lịch sử:', movie.name);
   } catch (e) { console.error('saveHistory error:', e); }
 }
 

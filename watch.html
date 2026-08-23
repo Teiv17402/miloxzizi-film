@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r38"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r39"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -69,10 +69,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260717r38"></script>
-  <script src="js/api.js?v=20260717r38"></script>
-  <script src="js/storage.js?v=20260717r38"></script>
-  <script src="js/common.js?v=20260717r38"></script>
+  <script src="js/auth.js?v=20260717r39"></script>
+  <script src="js/api.js?v=20260717r39"></script>
+  <script src="js/storage.js?v=20260717r39"></script>
+  <script src="js/common.js?v=20260717r39"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -196,6 +196,69 @@
       refreshAdSkipToggle();
     };
 
+    // --- Nhớ chỗ đang xem / Xem tiếp --------------------------------------
+    // Lưu vị trí đang xem liên tục để lỡ tay thoát ra vẫn quay lại đúng chỗ.
+    let currentMovieGlobal = null;   // phim + tập hiện tại (để lưu lịch sử kèm thời gian)
+    let currentEpGlobal = null;
+    let savedResumeTime = 0;         // vị trí đã lưu của tập này (giây), tính lúc mở phim
+    let lastHistorySave = 0;
+    let resumeOffered = false;       // chỉ mời "Xem tiếp" MỘT lần mỗi lần mở trang
+
+    function saveWatchProgress(force) {
+      const v = document.getElementById('videoPlayer');
+      if (!v || !currentMovieGlobal || !currentEpGlobal) return;
+      const t = v.currentTime;
+      if (!isFinite(t) || t < 5) return;         // bỏ qua vài giây đầu
+      const now = Date.now();
+      if (!force && now - lastHistorySave < 5000) return;   // tối đa 5s/lần
+      lastHistorySave = now;
+      saveHistory(currentMovieGlobal, currentEpGlobal, t, isFinite(v.duration) ? v.duration : 0);
+    }
+
+    function armHistorySave(video) {
+      if (!video || video.__histArmed) return;
+      video.__histArmed = true;
+      video.addEventListener('timeupdate', () => saveWatchProgress(false));
+      video.addEventListener('pause', () => saveWatchProgress(true));
+    }
+    // Lưu ngay khi rời trang (đóng tab, chuyển trang) — chắc chắn không mất chỗ.
+    window.addEventListener('pagehide', () => saveWatchProgress(true));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveWatchProgress(true);
+    });
+
+    // Hiện nút "Xem tiếp từ MM:SS" khi mở lại phim đang xem dở.
+    function showResumePrompt() {
+      if (!(savedResumeTime > 30)) return;       // chưa xem đủ lâu thì thôi
+      const v = document.getElementById('videoPlayer');
+      if (v && isFinite(v.duration) && v.duration > 0 && savedResumeTime > v.duration - 45) return; // gần hết
+      const c = document.querySelector('.player-container');
+      if (!c || c.querySelector('.resume-prompt')) return;
+      const box = document.createElement('div');
+      box.className = 'resume-prompt';
+      box.style.cssText = 'position:absolute;left:16px;bottom:80px;z-index:31;display:flex;gap:8px;' +
+        'align-items:center;background:rgba(20,20,20,.94);color:#fff;padding:10px 12px;border-radius:10px;' +
+        'box-shadow:0 6px 24px rgba(0,0,0,.55);font-size:14px;max-width:calc(100% - 32px);flex-wrap:wrap;';
+      box.innerHTML =
+        '<span>Xem tiếp từ <strong>' + formatWatchTime(savedResumeTime) + '</strong>?</span>' +
+        '<button class="rp-yes" style="background:var(--accent,#e50914);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;">▶ Xem tiếp</button>' +
+        '<button class="rp-no" style="background:rgba(255,255,255,.15);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;">Xem từ đầu</button>';
+      c.appendChild(box);
+      const close = () => { box.remove(); };
+      box.querySelector('.rp-yes').addEventListener('click', () => {
+        const vv = document.getElementById('videoPlayer');
+        if (vv) { vv.currentTime = savedResumeTime; vv.play().catch(() => {}); }
+        close();
+      });
+      box.querySelector('.rp-no').addEventListener('click', () => {
+        const vv = document.getElementById('videoPlayer');
+        if (vv) vv.currentTime = 0;
+        close();
+      });
+      // Tự ẩn sau 12s nếu người xem không chọn (phim cứ chạy tiếp bình thường).
+      setTimeout(close, 12000);
+    }
+
     // Vòng đệm chẩn đoán: giữ lại cảnh báo của hls.js để soi khi lỗi xảy ra.
     const audioDiag = [];
     function diag(kind, msg) {
@@ -281,7 +344,15 @@
         return;
       }
       document.title = movie.name + ' - ' + currentEp.name + ' - MiloxZizi Film';
-      saveHistory(movie, currentEp);
+      currentMovieGlobal = movie;
+      currentEpGlobal = currentEp;
+      // Vị trí đã lưu của ĐÚNG tập này (nếu có) -> để mời "Xem tiếp".
+      try {
+        const prev = getHistoryByMovie(slug);
+        savedResumeTime = (prev && prev.episodeSlug === currentEp.slug && prev.currentTime > 0)
+          ? prev.currentTime : 0;
+      } catch (e) { savedResumeTime = 0; }
+      saveHistory(movie, currentEp);   // giữ vị trí cũ (storage.js không ghi đè bằng 0)
       if (window.logView) logView(movie.name, currentEp.name, slug);
       const currentIdx = eps.findIndex(e => e.slug === currentEp.slug);
       const nextEp = currentIdx < eps.length - 1 ? eps[currentIdx + 1] : null;
@@ -320,6 +391,9 @@
       const plyrEl = document.querySelector('.plyr');
       const video = document.getElementById('videoPlayer');
       if (!plyrEl || !video) return;
+
+      // Mời "Xem tiếp từ MM:SS" một lần khi mở lại phim đang xem dở.
+      if (!resumeOffered) { resumeOffered = true; showResumePrompt(); }
 
       // SCROLL PROTECTION: Force body scrollable luôn (trừ khi fullscreen)
       // Plyr/HLS có thể set body overflow:hidden ngầm
@@ -398,6 +472,7 @@
     function initPlyrPlayer(m3u8Url, nextEpUrl) {
       const video = document.getElementById('videoPlayer');
       armAdSkip(video);
+      armHistorySave(video);
       currentM3u8Url = m3u8Url;
       const resumeAt = pendingResume;
       const resumePlay = pendingAutoplay;

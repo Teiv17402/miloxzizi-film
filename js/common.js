@@ -97,6 +97,60 @@ function renderMovieList(movies, containerId) {
   observeCards(container);
 }
 
+// Định dạng giây -> "MM:SS" hoặc "H:MM:SS"
+function formatWatchTime(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : m + ':' + pad(s);
+}
+
+// Lọc lịch sử ra các phim ĐANG XEM DỞ (có vị trí > 30s, chưa gần hết).
+function getContinueWatching() {
+  let hist = [];
+  try { hist = getHistory(); } catch (e) { return []; }
+  return (hist || []).filter(h => {
+    if (!h || !h.slug || !(h.currentTime > 30)) return false;
+    // Nếu biết thời lượng: bỏ khi đã xem quá 95% (coi như xem xong).
+    if (h.duration && h.duration > 0 && h.currentTime > h.duration * 0.95) return false;
+    return true;
+  });
+}
+
+// Render mục "Xem tiếp" (thẻ có thanh tiến trình), link thẳng tới đúng tập.
+function renderContinueWatching(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return 0;
+  const items = getContinueWatching();
+  if (!items.length) { container.innerHTML = ''; return 0; }
+  container.innerHTML = items.map(h => {
+    const poster = getPosterUrl(h) || PLACEHOLDER_POSTER;
+    const pct = (h.duration && h.duration > 0)
+      ? Math.min(100, Math.round(h.currentTime / h.duration * 100)) : 0;
+    const epParam = h.episodeSlug ? '&ep=' + encodeURIComponent(h.episodeSlug) : '';
+    const epLabel = h.episodeName ? h.episodeName + ' • ' : '';
+    return `
+      <a href="watch.html?slug=${h.slug}${epParam}" class="movie-card">
+        <div class="poster">
+          <img src="${poster}" alt="${h.name || ''}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
+          <div class="badges"><span class="badge">▶ ${formatWatchTime(h.currentTime)}</span></div>
+          <div class="overlay"><div class="play-btn">▶</div><div class="meta"><span>Xem tiếp</span></div></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25);">
+            <div style="height:100%;width:${pct}%;background:var(--accent,#e50914);"></div>
+          </div>
+        </div>
+        <div class="info">
+          <div class="name">${h.name || ''}</div>
+          <div class="origin-name">${epLabel}Xem tiếp từ ${formatWatchTime(h.currentTime)}</div>
+        </div>
+      </a>`;
+  }).join('');
+  observeCards(container);
+  return items.length;
+}
+
 function showSkeleton(containerId, count) {
   count = count || 12;
   const container = document.getElementById(containerId);
