@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260717r43"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r44"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -73,10 +73,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260717r43"></script>
-  <script src="js/api.js?v=20260717r43"></script>
-  <script src="js/storage.js?v=20260717r43"></script>
-  <script src="js/common.js?v=20260717r43"></script>
+  <script src="js/auth.js?v=20260717r44"></script>
+  <script src="js/api.js?v=20260717r44"></script>
+  <script src="js/storage.js?v=20260717r44"></script>
+  <script src="js/common.js?v=20260717r44"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -158,18 +158,33 @@
     function armAdSkip(video) {
       if (!video || video.__adSkipArmed) return;
       video.__adSkipArmed = true;
-      video.addEventListener('timeupdate', () => {
+
+      function trySkip() {
         if (!autoSkipEnabled() || !adRanges.length) return;
         const t = video.currentTime;
         for (const r of adRanges) {
           if (t >= r.start && t < r.end - 0.25) {
-            video.currentTime = r.end;         // fragment.start == currentTime -> tua thẳng
+            // Nhảy HẲN qua mép cuối QC (+0.3s) để không lọt lại vào vùng QC ->
+            // tránh tua đi tua lại; fragment.start == currentTime nên nhảy thẳng.
+            video.currentTime = r.end + 0.3;
             diag('adskip', 'tua ' + t.toFixed(2) + ' -> ' + r.end.toFixed(2));
             showAdSkipToast();
             break;
           }
         }
-      });
+      }
+
+      // timeupdate (~4 lần/giây) làm lưới an toàn, chạy cả khi tab chạy nền.
+      video.addEventListener('timeupdate', trySkip);
+      // requestAnimationFrame (~60 lần/giây) bắt mép QC gần như tức thì khi đang
+      // xem -> quảng cáo chỉ lóe vài mili-giây thay vì tới ~0.25s. Tự dừng khi
+      // thẻ <video> bị gỡ (rebuildPlayer tạo thẻ mới).
+      function rafLoop() {
+        if (!video.__adSkipArmed || !document.contains(video)) return;
+        if (!video.paused && !video.seeking) trySkip();
+        requestAnimationFrame(rafLoop);
+      }
+      requestAnimationFrame(rafLoop);
     }
 
     function showAdSkipToast() {
