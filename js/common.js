@@ -19,7 +19,6 @@ function renderHeader(activePage) {
         <a href="index.html" class="logo">MiloxZizi Film</a>
         <ul class="nav-links">
           <li><a href="index.html" class="${activePage === 'home' ? 'active' : ''}">Trang chủ</a></li>
-          <li><a href="favorites.html?tab=history" class="${activePage === 'history' ? 'active' : ''}">🕒 Xem gần đây</a></li>
           <li><a href="search.html?type=phim-bo" class="${activePage === 'phim-bo' ? 'active' : ''}">Phim bộ</a></li>
           <li><a href="search.html?type=phim-le" class="${activePage === 'phim-le' ? 'active' : ''}">Phim lẻ</a></li>
           <li><a href="search.html?type=hoat-hinh" class="${activePage === 'hoat-hinh' ? 'active' : ''}">Hoạt hình</a></li>
@@ -32,6 +31,7 @@ function renderHeader(activePage) {
             <div class="dropdown-menu dropdown-grid">${countryDropdown}</div>
           </li>
           <li><a href="favorites.html" class="${activePage === 'favorites' ? 'active' : ''}">★ Yêu thích</a></li>
+          <li><a href="favorites.html?tab=history" class="${activePage === 'history' ? 'active' : ''}">🕒 Xem gần đây</a></li>
         </ul>
         <form class="search-box" onsubmit="handleSearch(event)">
           <input type="text" id="searchInput" placeholder="Tìm phim..." />
