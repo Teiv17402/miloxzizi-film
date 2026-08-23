@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260717r44"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r45"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -73,10 +73,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260717r44"></script>
-  <script src="js/api.js?v=20260717r44"></script>
-  <script src="js/storage.js?v=20260717r44"></script>
-  <script src="js/common.js?v=20260717r44"></script>
+  <script src="js/auth.js?v=20260717r45"></script>
+  <script src="js/api.js?v=20260717r45"></script>
+  <script src="js/storage.js?v=20260717r45"></script>
+  <script src="js/common.js?v=20260717r45"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -159,13 +159,16 @@
       if (!video || video.__adSkipArmed) return;
       video.__adSkipArmed = true;
 
+      // Nhảy TRƯỚC khi chạm quảng cáo (sớm 0.4s) -> không khung hình QC nào kịp
+      // hiện, bỏ HẲN thay vì lóe 0.1s. Chỉ mất ~0.4s cảnh phim ngay trước điểm
+      // nối QC (vốn là chỗ cắt sang QC) - gần như không nhận ra.
+      const AD_LOOKAHEAD = 0.4;
       function trySkip() {
         if (!autoSkipEnabled() || !adRanges.length) return;
         const t = video.currentTime;
         for (const r of adRanges) {
-          if (t >= r.start && t < r.end - 0.25) {
-            // Nhảy HẲN qua mép cuối QC (+0.3s) để không lọt lại vào vùng QC ->
-            // tránh tua đi tua lại; fragment.start == currentTime nên nhảy thẳng.
+          if (t >= r.start - AD_LOOKAHEAD && t < r.end - 0.25) {
+            // Nhảy HẲN qua mép cuối QC (+0.3s) để không lọt lại vào vùng QC.
             video.currentTime = r.end + 0.3;
             diag('adskip', 'tua ' + t.toFixed(2) + ' -> ' + r.end.toFixed(2));
             showAdSkipToast();
