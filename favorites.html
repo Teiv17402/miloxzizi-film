@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Phim yêu thích - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r39"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r40"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -35,28 +35,33 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20260717r39"></script>
-  <script src="js/api.js?v=20260717r39"></script>
-  <script src="js/storage.js?v=20260717r39"></script>
-  <script src="js/common.js?v=20260717r39"></script>
+  <script src="js/auth.js?v=20260717r40"></script>
+  <script src="js/api.js?v=20260717r40"></script>
+  <script src="js/storage.js?v=20260717r40"></script>
+  <script src="js/common.js?v=20260717r40"></script>
   <script>
+    // Vào từ menu "Xem gần đây" (?tab=history) thì mở thẳng tab lịch sử.
+    const initialTab = getQueryParam('tab') === 'history' ? 'history' : 'favorites';
+
     try {
-      document.getElementById('header-container').innerHTML = renderHeader('favorites');
+      document.getElementById('header-container').innerHTML =
+        renderHeader(initialTab === 'history' ? 'history' : 'favorites');
       document.getElementById('footer-container').innerHTML = renderFooter();
     } catch (e) {
       console.error('Header/Footer error:', e);
     }
 
     // Tab switching
+    function activateTab(view) {
+      document.querySelectorAll('.server-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === view));
+      document.getElementById('favoritesView').style.display = view === 'favorites' ? '' : 'none';
+      document.getElementById('historyView').style.display = view === 'history' ? '' : 'none';
+    }
     document.querySelectorAll('.server-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        const view = tab.dataset.tab;
-        document.getElementById('favoritesView').style.display = view === 'favorites' ? '' : 'none';
-        document.getElementById('historyView').style.display = view === 'history' ? '' : 'none';
-      });
+      tab.addEventListener('click', () => activateTab(tab.dataset.tab));
     });
+    activateTab(initialTab);
 
     function renderFavorites() {
       const container = document.getElementById('favoritesList');

@@ -30,6 +30,7 @@ function renderHeader(activePage) {
             <span class="dropdown-toggle">Quốc gia <i class="caret">▾</i></span>
             <div class="dropdown-menu dropdown-grid">${countryDropdown}</div>
           </li>
+          <li><a href="favorites.html?tab=history" class="${activePage === 'history' ? 'active' : ''}">🕒 Xem gần đây</a></li>
           <li><a href="favorites.html" class="${activePage === 'favorites' ? 'active' : ''}">★ Yêu thích</a></li>
         </ul>
         <form class="search-box" onsubmit="handleSearch(event)">

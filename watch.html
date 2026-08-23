@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Xem phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r39"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r40"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -69,10 +69,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260717r39"></script>
-  <script src="js/api.js?v=20260717r39"></script>
-  <script src="js/storage.js?v=20260717r39"></script>
-  <script src="js/common.js?v=20260717r39"></script>
+  <script src="js/auth.js?v=20260717r40"></script>
+  <script src="js/api.js?v=20260717r40"></script>
+  <script src="js/storage.js?v=20260717r40"></script>
+  <script src="js/common.js?v=20260717r40"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -236,9 +236,11 @@
       if (!c || c.querySelector('.resume-prompt')) return;
       const box = document.createElement('div');
       box.className = 'resume-prompt';
-      box.style.cssText = 'position:absolute;left:16px;bottom:80px;z-index:31;display:flex;gap:8px;' +
-        'align-items:center;background:rgba(20,20,20,.94);color:#fff;padding:10px 12px;border-radius:10px;' +
-        'box-shadow:0 6px 24px rgba(0,0,0,.55);font-size:14px;max-width:calc(100% - 32px);flex-wrap:wrap;';
+      // Đặt ở GIỮA-TRÊN của khung phim để không đè lên thanh điều khiển ở dưới.
+      box.style.cssText = 'position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:31;' +
+        'display:flex;gap:8px;align-items:center;justify-content:center;background:rgba(20,20,20,.94);' +
+        'color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.55);' +
+        'font-size:14px;max-width:calc(100% - 32px);flex-wrap:wrap;';
       box.innerHTML =
         '<span>Xem tiếp từ <strong>' + formatWatchTime(savedResumeTime) + '</strong>?</span>' +
         '<button class="rp-yes" style="background:var(--accent,#e50914);color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;">▶ Xem tiếp</button>' +
