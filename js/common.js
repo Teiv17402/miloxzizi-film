@@ -4,6 +4,13 @@
 
 const PLACEHOLDER_POSTER = 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 300%22><rect fill=%22%23222%22 width=%22200%22 height=%22300%22/><text x=%22100%22 y=%22150%22 fill=%22%23666%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22>No Image</text></svg>';
 
+// Bọc dữ liệu (tên phim, diễn viên...) trước khi chèn vào innerHTML.
+// Nguồn phim là bên thứ ba; tên có ký tự <, &, " sẽ vỡ layout hoặc chèn mã.
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function renderHeader(activePage) {
   activePage = activePage || 'home';
   const categoryDropdown = (typeof CATEGORIES !== 'undefined' ? CATEGORIES : [])
@@ -60,19 +67,20 @@ function handleSearch(event) {
 function renderMovieCard(movie) {
   const poster = getPosterUrl(movie);
   const badges = [];
-  if (movie.episode_current) badges.push('<span class="badge">' + movie.episode_current + '</span>');
-  if (movie.quality) badges.push('<span class="badge quality">' + movie.quality + '</span>');
-  if (movie.lang) badges.push('<span class="badge lang">' + movie.lang + '</span>');
+  if (movie.episode_current) badges.push('<span class="badge">' + escapeHtml(movie.episode_current) + '</span>');
+  if (movie.quality) badges.push('<span class="badge quality">' + escapeHtml(movie.quality) + '</span>');
+  if (movie.lang) badges.push('<span class="badge lang">' + escapeHtml(movie.lang) + '</span>');
 
   const metaItems = [];
-  if (movie.year) metaItems.push('<span>' + movie.year + '</span>');
-  if (movie.time) metaItems.push('<span>' + movie.time + '</span>');
-  if (movie.quality) metaItems.push('<span>' + movie.quality + '</span>');
+  if (movie.year) metaItems.push('<span>' + escapeHtml(movie.year) + '</span>');
+  if (movie.time) metaItems.push('<span>' + escapeHtml(movie.time) + '</span>');
+  if (movie.quality) metaItems.push('<span>' + escapeHtml(movie.quality) + '</span>');
 
+  const name = escapeHtml(movie.name);
   return `
-    <a href="movie.html?slug=${movie.slug}" class="movie-card">
+    <a href="movie.html?slug=${encodeURIComponent(movie.slug || '')}" class="movie-card">
       <div class="poster">
-        <img src="${poster}" alt="${movie.name}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
+        <img src="${poster}" alt="${name}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
         <div class="badges">${badges.join('')}</div>
         <div class="overlay">
           <div class="play-btn">▶</div>
@@ -80,8 +88,8 @@ function renderMovieCard(movie) {
         </div>
       </div>
       <div class="info">
-        <div class="name">${movie.name}</div>
-        <div class="origin-name">${movie.origin_name || ''} ${movie.year ? '• ' + movie.year : ''}</div>
+        <div class="name">${name}</div>
+        <div class="origin-name">${escapeHtml(movie.origin_name || '')} ${movie.year ? '• ' + escapeHtml(movie.year) : ''}</div>
       </div>
     </a>
   `;
@@ -131,11 +139,12 @@ function renderContinueWatching(containerId) {
     const pct = (h.duration && h.duration > 0)
       ? Math.min(100, Math.round(h.currentTime / h.duration * 100)) : 0;
     const epParam = h.episodeSlug ? '&ep=' + encodeURIComponent(h.episodeSlug) : '';
-    const epLabel = h.episodeName ? h.episodeName + ' • ' : '';
+    const epLabel = h.episodeName ? escapeHtml(h.episodeName) + ' • ' : '';
+    const nm = escapeHtml(h.name || '');
     return `
-      <a href="watch.html?slug=${h.slug}${epParam}" class="movie-card">
+      <a href="watch.html?slug=${encodeURIComponent(h.slug || '')}${epParam}" class="movie-card">
         <div class="poster">
-          <img src="${poster}" alt="${h.name || ''}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
+          <img src="${poster}" alt="${nm}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
           <div class="badges"><span class="badge">▶ ${formatWatchTime(h.currentTime)}</span></div>
           <div class="overlay"><div class="play-btn">▶</div><div class="meta"><span>Xem tiếp</span></div></div>
           <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25);">
@@ -143,7 +152,7 @@ function renderContinueWatching(containerId) {
           </div>
         </div>
         <div class="info">
-          <div class="name">${h.name || ''}</div>
+          <div class="name">${nm}</div>
           <div class="origin-name">${epLabel}Xem tiếp từ ${formatWatchTime(h.currentTime)}</div>
         </div>
       </a>`;
@@ -253,21 +262,22 @@ function renderHeroBanner(movies) {
   const slidesHtml = slides.map((m, idx) => {
     const poster = getPosterUrl(m);
     const badges = [];
-    if (m.episode_current) badges.push('<span>' + m.episode_current + '</span>');
-    if (m.quality) badges.push('<span>' + m.quality + '</span>');
-    if (m.year) badges.push('<span>' + m.year + '</span>');
-    if (m.lang) badges.push('<span>' + m.lang + '</span>');
-    const desc = m.content ? stripHtml(m.content).slice(0, 200) + '...' : 'Phim hấp dẫn đang chờ bạn khám phá.';
+    if (m.episode_current) badges.push('<span>' + escapeHtml(m.episode_current) + '</span>');
+    if (m.quality) badges.push('<span>' + escapeHtml(m.quality) + '</span>');
+    if (m.year) badges.push('<span>' + escapeHtml(m.year) + '</span>');
+    if (m.lang) badges.push('<span>' + escapeHtml(m.lang) + '</span>');
+    const desc = m.content ? escapeHtml(stripHtml(m.content).slice(0, 200)) + '...' : 'Phim hấp dẫn đang chờ bạn khám phá.';
+    const slug = encodeURIComponent(m.slug || '');
     return '<div class="hero-slide ' + (idx === 0 ? 'active' : '') + '" data-idx="' + idx + '">' +
       '<div class="bg" style="background-image: url(\'' + poster + '\')"></div>' +
       '<div class="hero-content">' +
       '<div class="badge-row">' + badges.join('') + '</div>' +
-      '<h2>' + m.name + '</h2>' +
-      '<div class="origin">' + (m.origin_name || '') + '</div>' +
+      '<h2>' + escapeHtml(m.name) + '</h2>' +
+      '<div class="origin">' + escapeHtml(m.origin_name || '') + '</div>' +
       '<div class="desc">' + desc + '</div>' +
       '<div class="btn-row">' +
-      '<a href="movie.html?slug=' + m.slug + '" class="btn btn-large">▶ Xem ngay</a>' +
-      '<a href="movie.html?slug=' + m.slug + '" class="btn btn-secondary btn-large">ⓘ Chi tiết</a>' +
+      '<a href="movie.html?slug=' + slug + '" class="btn btn-large">▶ Xem ngay</a>' +
+      '<a href="movie.html?slug=' + slug + '" class="btn btn-secondary btn-large">ⓘ Chi tiết</a>' +
       '</div></div></div>';
   }).join('');
   const indicators = slides.map((_, idx) => '<span class="' + (idx === 0 ? 'active' : '') + '" data-idx="' + idx + '"></span>').join('');

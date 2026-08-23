@@ -17,13 +17,25 @@ const IMG_BASE = 'https://phimimg.com/';
  * @returns {Promise} { items: [], pagination: {} }
  */
 async function getNewMovies(page = 1) {
+  // Cache ngắn 5 phút trong sessionStorage: quay lại trang chủ / bấm back gần
+  // như tức thì và đỡ gọi API. Hết 5 phút hoặc mở tab mới thì tải lại danh sách mới.
+  const cacheKey = 'nm_p' + page;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+    if (cached && (Date.now() - cached.at) < 5 * 60 * 1000) {
+      return { items: cached.items, pagination: cached.pagination };
+    }
+  } catch (e) {}
   try {
     const res = await fetch(`${API_BASE}/danh-sach/phim-moi-cap-nhat?page=${page}`);
     const data = await res.json();
-    return {
-      items: data.items || [],
-      pagination: data.pagination || {}
-    };
+    const result = { items: data.items || [], pagination: data.pagination || {} };
+    try {
+      if (result.items.length) {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), items: result.items, pagination: result.pagination }));
+      }
+    } catch (e) {}
+    return result;
   } catch (err) {
     console.error('Lỗi getNewMovies:', err);
     return { items: [], pagination: {} };

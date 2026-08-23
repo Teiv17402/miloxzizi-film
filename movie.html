@@ -8,7 +8,9 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chi tiết phim - MiloxZizi Film</title>
-  <link rel="stylesheet" href="css/style.css?v=20260717r42"/>
+  <link rel="preconnect" href="https://phimapi.com" crossorigin/>
+  <link rel="preconnect" href="https://phimimg.com"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r43"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -21,10 +23,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20260717r42"></script>
-  <script src="js/api.js?v=20260717r42"></script>
-  <script src="js/storage.js?v=20260717r42"></script>
-  <script src="js/common.js?v=20260717r42"></script>
+  <script src="js/auth.js?v=20260717r43"></script>
+  <script src="js/api.js?v=20260717r43"></script>
+  <script src="js/storage.js?v=20260717r43"></script>
+  <script src="js/common.js?v=20260717r43"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -48,10 +50,11 @@
 
     function renderDetail(movie, episodes) {
       const poster = getPosterUrl(movie);
-      const categories = (movie.category || []).map(c => c.name).join(', ');
-      const countries = (movie.country || []).map(c => c.name).join(', ');
-      const directors = (movie.director || []).filter(d => d).join(', ');
-      const actors = (movie.actor || []).filter(a => a).join(', ');
+      const categories = escapeHtml((movie.category || []).map(c => c.name).join(', '));
+      const countries = escapeHtml((movie.country || []).map(c => c.name).join(', '));
+      const directors = escapeHtml((movie.director || []).filter(d => d).join(', '));
+      const actors = escapeHtml((movie.actor || []).filter(a => a).join(', '));
+      const mName = escapeHtml(movie.name);
       const fav = isFavorite(slug);
 
       // Lấy tập đầu tiên để xem
@@ -61,12 +64,12 @@
       document.getElementById('movieDetail').innerHTML = `
         <div class="movie-detail">
           <div class="poster">
-            <img src="${poster}" alt="${movie.name}"
+            <img src="${poster}" alt="${mName}"
                  onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 280 420%22><rect fill=%22%23222%22 width=%22280%22 height=%22420%22/><text x=%22140%22 y=%22210%22 fill=%22%23666%22 text-anchor=%22middle%22>No Image</text></svg>'"/>
           </div>
           <div class="info">
-            <h1>${movie.name}</h1>
-            <div class="origin">${movie.origin_name || ''}</div>
+            <h1>${mName}</h1>
+            <div class="origin">${escapeHtml(movie.origin_name || '')}</div>
 
             <div class="btn-group">
               <a href="${firstEpUrl}" class="btn">▶ Xem ngay</a>
@@ -74,10 +77,10 @@
             </div>
 
             <ul class="meta-list">
-              <li><strong>Trạng thái:</strong> ${movie.episode_current || 'N/A'}</li>
-              <li><strong>Năm:</strong> ${movie.year || 'N/A'}</li>
-              <li><strong>Thời lượng:</strong> ${movie.time || 'N/A'}</li>
-              <li><strong>Chất lượng:</strong> ${movie.quality || 'N/A'} • ${movie.lang || 'N/A'}</li>
+              <li><strong>Trạng thái:</strong> ${escapeHtml(movie.episode_current || 'N/A')}</li>
+              <li><strong>Năm:</strong> ${escapeHtml(movie.year || 'N/A')}</li>
+              <li><strong>Thời lượng:</strong> ${escapeHtml(movie.time || 'N/A')}</li>
+              <li><strong>Chất lượng:</strong> ${escapeHtml(movie.quality || 'N/A')} • ${escapeHtml(movie.lang || 'N/A')}</li>
               <li><strong>Thể loại:</strong> ${categories || 'N/A'}</li>
               <li><strong>Quốc gia:</strong> ${countries || 'N/A'}</li>
               <li><strong>Đạo diễn:</strong> ${directors || 'N/A'}</li>
