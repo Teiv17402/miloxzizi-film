@@ -10,7 +10,7 @@
   <title>Phim yêu thích - MiloxZizi Film</title>
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20260717r45"/>
+  <link rel="stylesheet" href="css/style.css?v=20260717r46"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -37,10 +37,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20260717r45"></script>
-  <script src="js/api.js?v=20260717r45"></script>
-  <script src="js/storage.js?v=20260717r45"></script>
-  <script src="js/common.js?v=20260717r45"></script>
+  <script src="js/auth.js?v=20260717r46"></script>
+  <script src="js/api.js?v=20260717r46"></script>
+  <script src="js/storage.js?v=20260717r46"></script>
+  <script src="js/common.js?v=20260717r46"></script>
   <script>
     // Vào từ menu "Xem gần đây" (?tab=history) thì mở thẳng tab lịch sử.
     const initialTab = getQueryParam('tab') === 'history' ? 'history' : 'favorites';
@@ -109,12 +109,14 @@
         const posterDiv = document.createElement('div');
         posterDiv.className = 'poster';
         const img = document.createElement('img');
-        img.src = poster;
+        img.src = poster || PLACEHOLDER_POSTER;
         img.alt = name;
         img.loading = 'lazy';
-        img.onerror = function() { this.style.background = '#222'; this.style.minHeight = '270px'; this.src = ''; };
+        img.onerror = function() { this.onerror = null; this.src = PLACEHOLDER_POSTER; };
         posterDiv.appendChild(img);
         link.appendChild(posterDiv);
+        // Poster cũ (OPhim chết) -> tải lại từ phimapi + lưu đè.
+        if ((poster || '').indexOf('phimimg.com') === -1) healPosterIfStale(m, img);
 
         const info = document.createElement('div');
         info.className = 'info';
@@ -187,10 +189,13 @@
         const posterDiv = document.createElement('div');
         posterDiv.className = 'poster';
         const img = document.createElement('img');
-        img.src = poster;
+        img.src = poster || PLACEHOLDER_POSTER;
         img.alt = name;
         img.loading = 'lazy';
+        img.onerror = function () { this.onerror = null; this.src = PLACEHOLDER_POSTER; };
         posterDiv.appendChild(img);
+        // Poster cũ (OPhim chết) -> tải lại từ phimapi + lưu đè.
+        if ((poster || '').indexOf('phimimg.com') === -1) healPosterIfStale(m, img);
 
         const badges = document.createElement('div');
         badges.className = 'badges';

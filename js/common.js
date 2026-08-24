@@ -128,6 +128,42 @@ function getContinueWatching() {
   });
 }
 
+// Poster lưu trong lịch sử/yêu thích có thể là URL cũ (OPhim đã chết -> ảnh đen).
+// Nếu poster không phải CDN hiện tại (phimimg.com) thì tải lại từ API rồi lưu đè,
+// để lần sau khỏi phải tải lại.
+function persistFreshPoster(slug, posterUrl, thumbUrl) {
+  for (const key of ['phim_history', 'phim_favorites']) {
+    try {
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      let changed = false;
+      arr.forEach(e => {
+        if (e && e.slug === slug) {
+          if (posterUrl) e.poster_url = posterUrl;
+          if (thumbUrl) e.thumb_url = thumbUrl;
+          changed = true;
+        }
+      });
+      if (changed) localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) {}
+  }
+}
+
+async function healPosterIfStale(entry, imgEl) {
+  try {
+    if (!entry || !entry.slug) return;
+    const cur = getPosterUrl(entry) || '';
+    if (cur.indexOf('phimimg.com') !== -1) return;   // đã là CDN mới -> bỏ qua
+    const res = await getMovieDetail(entry.slug);
+    const m = res && res.movie;
+    if (!m) return;
+    const fresh = getPosterUrl(m);
+    if (fresh && fresh.indexOf('phimimg.com') !== -1) {
+      if (imgEl) imgEl.src = fresh;
+      persistFreshPoster(entry.slug, m.poster_url, m.thumb_url);
+    }
+  } catch (e) {}
+}
+
 // Render mục "Xem tiếp" (thẻ có thanh tiến trình), link thẳng tới đúng tập.
 function renderContinueWatching(containerId) {
   const container = document.getElementById(containerId);
@@ -158,6 +194,13 @@ function renderContinueWatching(containerId) {
       </a>`;
   }).join('');
   observeCards(container);
+  // Chữa poster cũ (OPhim chết) -> tải lại từ phimapi cho đúng thứ tự thẻ.
+  const cwCards = container.querySelectorAll('.movie-card');
+  items.forEach((h, i) => {
+    if ((getPosterUrl(h) || '').indexOf('phimimg.com') === -1) {
+      healPosterIfStale(h, cwCards[i] && cwCards[i].querySelector('img'));
+    }
+  });
   return items.length;
 }
 
