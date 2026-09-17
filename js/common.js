@@ -165,6 +165,7 @@ async function healPosterIfStale(entry, imgEl) {
 }
 
 // Render mục "Xem tiếp" (thẻ có thanh tiến trình), link thẳng tới đúng tập.
+// Mỗi thẻ có nút ✕ để xoá khỏi lịch sử (không muốn xem tiếp phim đó nữa).
 function renderContinueWatching(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return 0;
@@ -177,21 +178,29 @@ function renderContinueWatching(containerId) {
     const epParam = h.episodeSlug ? '&ep=' + encodeURIComponent(h.episodeSlug) : '';
     const epLabel = h.episodeName ? escapeHtml(h.episodeName) + ' • ' : '';
     const nm = escapeHtml(h.name || '');
+    const slugAttr = escapeHtml(h.slug || '');
+    // Nút xoá đặt CẠNH <a>, không lồng trong <a> (button trong a là HTML sai) -
+    // giống cách favorites.html làm ở tab Yêu thích / Lịch sử.
     return `
-      <a href="watch.html?slug=${encodeURIComponent(h.slug || '')}${epParam}" class="movie-card">
-        <div class="poster">
-          <img src="${poster}" alt="${nm}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
-          <div class="badges"><span class="badge">▶ ${formatWatchTime(h.currentTime)}</span></div>
-          <div class="overlay"><div class="play-btn">▶</div><div class="meta"><span>Xem tiếp</span></div></div>
-          <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25);">
-            <div style="height:100%;width:${pct}%;background:var(--accent,#e50914);"></div>
+      <div class="movie-card" style="position:relative;">
+        <a href="watch.html?slug=${encodeURIComponent(h.slug || '')}${epParam}">
+          <div class="poster">
+            <img src="${poster}" alt="${nm}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
+            <div class="badges"><span class="badge">▶ ${formatWatchTime(h.currentTime)}</span></div>
+            <div class="overlay"><div class="play-btn">▶</div><div class="meta"><span>Xem tiếp</span></div></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25);">
+              <div style="height:100%;width:${pct}%;background:var(--accent,#e50914);"></div>
+            </div>
           </div>
-        </div>
-        <div class="info">
-          <div class="name">${nm}</div>
-          <div class="origin-name">${epLabel}Xem tiếp từ ${formatWatchTime(h.currentTime)}</div>
-        </div>
-      </a>`;
+          <div class="info">
+            <div class="name">${nm}</div>
+            <div class="origin-name">${epLabel}Xem tiếp từ ${formatWatchTime(h.currentTime)}</div>
+          </div>
+        </a>
+        <button type="button" class="btn btn-secondary remove-continue" data-slug="${slugAttr}"
+          title="Xoá khỏi Xem tiếp" aria-label="Xoá khỏi Xem tiếp"
+          style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;z-index:3;">✕</button>
+      </div>`;
   }).join('');
   observeCards(container);
   // Chữa poster cũ (OPhim chết) -> tải lại từ phimapi cho đúng thứ tự thẻ.
@@ -200,6 +209,17 @@ function renderContinueWatching(containerId) {
     if ((getPosterUrl(h) || '').indexOf('phimimg.com') === -1) {
       healPosterIfStale(h, cwCards[i] && cwCards[i].querySelector('img'));
     }
+  });
+  // Xoá khỏi lịch sử (nút ✕) -> render lại + tự ẩn cả section nếu hết phim.
+  container.querySelectorAll('.remove-continue').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try { removeFromHistory(btn.dataset.slug); } catch (err) {}
+      const n = renderContinueWatching(containerId);
+      const section = container.closest('section');
+      if (section) section.style.display = n > 0 ? '' : 'none';
+    });
   });
   return items.length;
 }
