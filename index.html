@@ -6,12 +6,20 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <!-- PWA: "Thêm vào Màn hình chính" mở full-screen như app thật -->
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <meta name="theme-color" content="#e50914"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+  <meta name="apple-mobile-web-app-title" content="MiloxZizi Film"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MiloxZizi Film - Xem phim online miễn phí</title>
   <meta name="description" content="Xem phim online chất lượng cao, miễn phí, đa thể loại" />
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20260717r46"/>
+  <link rel="stylesheet" href="css/style.css?v=20260918r47"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -32,10 +40,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20260717r46"></script>
-  <script src="js/api.js?v=20260717r46"></script>
-  <script src="js/storage.js?v=20260717r46"></script>
-  <script src="js/common.js?v=20260717r46"></script>
+  <script src="js/auth.js?v=20260918r47"></script>
+  <script src="js/api.js?v=20260918r47"></script>
+  <script src="js/storage.js?v=20260918r47"></script>
+  <script src="js/common.js?v=20260918r47"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader('home');
     document.getElementById('footer-container').innerHTML = renderFooter();
