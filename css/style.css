@@ -49,9 +49,14 @@ header.scrolled { background: rgba(10, 10, 10, 0.98); }
 }
 .logo:hover { transform: scale(1.05); }
 .nav-links { display: flex; gap: 22px; list-style: none; flex: 1; align-items: center; }
+/* Moi muc menu luon 1 dong, khong bi bop/xuong dong chu - khi khong du cho,
+   ca khoi .nav-links se xuong hang duoi (nho .nav co flex-wrap:wrap) thay vi
+   tung chu bi ep vo ngang. */
+.nav-links li { flex-shrink: 0; }
 .nav-links a {
   color: var(--text-secondary); font-weight: 500; font-size: 14px;
   position: relative; padding: 4px 0; transition: color 0.2s;
+  white-space: nowrap;
 }
 .nav-links a::after {
   content: ''; position: absolute; bottom: -4px; left: 0;
@@ -65,7 +70,7 @@ header.scrolled { background: rgba(10, 10, 10, 0.98); }
   color: var(--text-secondary); font-weight: 500; font-size: 14px;
   cursor: pointer; padding: 4px 0; position: relative;
   display: flex; align-items: center; gap: 4px; transition: color 0.2s;
-  user-select: none;
+  user-select: none; white-space: nowrap;
 }
 .dropdown-toggle .caret { font-style: normal; font-size: 10px; transition: transform 0.3s; display: inline-block; }
 .has-dropdown:hover .dropdown-toggle,
