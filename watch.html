@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260922r49"/>
+  <link rel="stylesheet" href="css/style.css?v=20260922r50"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -81,10 +81,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260922r49"></script>
-  <script src="js/api.js?v=20260922r49"></script>
-  <script src="js/storage.js?v=20260922r49"></script>
-  <script src="js/common.js?v=20260922r49"></script>
+  <script src="js/auth.js?v=20260922r50"></script>
+  <script src="js/api.js?v=20260922r50"></script>
+  <script src="js/storage.js?v=20260922r50"></script>
+  <script src="js/common.js?v=20260922r50"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -288,11 +288,19 @@
     }
 
     window.cycleAudioBoost = function () {
-      if (!audioGainNode) return; // trinh duyet khong ho tro (da bao loi luc arm)
+      // QUAN TRONG: chi tao AudioContext O DAY - NGAY BEN TRONG cu chi bam nut
+      // cua nguoi dung - chu KHONG tao san luc tai trang (initPlyrPlayer).
+      // Da do that tren domain that (khong phai localhost, khong bypass chinh
+      // sach): AudioContext tao SAN luc tai trang bi 'suspended' VINH VIEN du
+      // nguoi dung co bam Play that hay khong - RMS do duoc = 0, MAT TIENG
+      // HOAN TOAN cho moi phim, moi nguoi xem. Tao ngay trong click nay thi
+      // AudioContext luon 'running' ngay (dung dac ta autoplay-gesture).
+      if (!audioGainNode) armAudioBoost(document.getElementById('videoPlayer'));
+      if (!audioGainNode) return; // trinh duyet qua cu / khong ho tro -> bo qua
       audioBoostLevel = audioBoostLevel >= 3 ? 1 : audioBoostLevel + 1;
       audioGainNode.gain.value = audioBoostLevel;
-      // AudioContext co the bi tam dung do chinh sach autoplay -> resume lai
-      // ngay khi co thao tac cua nguoi dung (bam nut nay chinh la 1 gesture).
+      // Luoi phong: neu van con 'suspended' vi ly do khac, resume ngay trong
+      // cung gesture nay.
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
       refreshAudioBoostToggle();
     };
@@ -563,7 +571,15 @@
       const video = document.getElementById('videoPlayer');
       armAdSkip(video);
       armHistorySave(video);
-      armAudioBoost(video);
+      // KHONG goi armAudioBoost() o day, KHONG CO NGOAI LE - kem ca khi dang
+      // dung lai player ("Sua tieng") luc audioBoostLevel > 1. Ly do: rebuild
+      // co the bi kich hoat TU DONG (khong phai nguoi bam nut) tu vong lap
+      // phuc hoi loi MEDIA_ERROR cua hls.js (xem 'setTimeout(rebuildPlayer, 0)'
+      // ben duoi) - luc do KHONG co user-gesture nao ca, tao AudioContext se
+      // lai dinh dung bay 'suspended' vinh vien -> MAT TIENG. Danh doi: neu
+      // dang bat Tang am ma player bi dung lai, phai bam lai nut 1 lan - doi
+      // lay viec KHONG BAO GIO co duong nao tao AudioContext ngoai mot cu chi
+      // bam nut THAT (chi xay ra trong cycleAudioBoost()).
       currentM3u8Url = m3u8Url;
       const resumeAt = pendingResume;
       const resumePlay = pendingAutoplay;
