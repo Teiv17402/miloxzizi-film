@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260919r48"/>
+  <link rel="stylesheet" href="css/style.css?v=20260922r49"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -81,10 +81,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260919r48"></script>
-  <script src="js/api.js?v=20260919r48"></script>
-  <script src="js/storage.js?v=20260919r48"></script>
-  <script src="js/common.js?v=20260919r48"></script>
+  <script src="js/auth.js?v=20260922r49"></script>
+  <script src="js/api.js?v=20260922r49"></script>
+  <script src="js/storage.js?v=20260922r49"></script>
+  <script src="js/common.js?v=20260922r49"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -251,6 +251,58 @@
       video.addEventListener('timeupdate', () => saveWatchProgress(false));
       video.addEventListener('pause', () => saveWatchProgress(true));
     }
+
+    // --- Tăng âm lượng cho phim bị nhỏ tiếng (file gốc master quá nhỏ) -----
+    // Đo thực tế: có phim (vd "Cô Hầu Gái 2010") nhỏ hơn phim bình thường tới
+    // ~24dB. Dùng Web Audio API chèn thêm GainNode SAU thẻ <video> để khuếch
+    // đại. KHÔNG lưu localStorage - chỉ áp dụng cho lần xem HIỆN TẠI, vì phim
+    // khác có thể đã đủ to, để mức tăng dính sang phim sau sẽ làm RÈ/VỠ TIẾNG.
+    // Giới hạn tối đa x3 (+9.5dB): phim to nhất đo được đỉnh chỉ -1.5dB, tăng
+    // x3 sẽ vỡ tiếng nếu lỡ để dính - x3 là mức an toàn cao nhất còn dùng được.
+    let audioCtx = null;
+    let audioGainNode = null;
+    let audioBoostLevel = 1; // 1 = binh thuong, 2 = x2 (+6dB), 3 = x3 (+9.5dB)
+
+    function armAudioBoost(video) {
+      if (!video || video.__boostArmed) return;
+      video.__boostArmed = true;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return; // trinh duyet qua cu, bo qua - video van phat binh thuong
+        audioCtx = new AC();
+        const source = audioCtx.createMediaElementSource(video);
+        audioGainNode = audioCtx.createGain();
+        audioGainNode.gain.value = audioBoostLevel;
+        source.connect(audioGainNode);
+        audioGainNode.connect(audioCtx.destination);
+        // Loc de F12 Console/kiem thu doc duoc trang thai, giong window.__audioDiag.
+        window.__audioCtx = audioCtx;
+        window.__audioGainNode = audioGainNode;
+      } catch (e) {
+        // Loi (vd trinh duyet chan) -> am thanh van phat qua duong mac dinh cua
+        // <video>, chi la khong tang duoc. Khong lam gi them de tranh cau
+        // truc am thanh bi hong.
+        diag('audioboost.err', e && e.message);
+        audioCtx = null; audioGainNode = null;
+      }
+    }
+
+    window.cycleAudioBoost = function () {
+      if (!audioGainNode) return; // trinh duyet khong ho tro (da bao loi luc arm)
+      audioBoostLevel = audioBoostLevel >= 3 ? 1 : audioBoostLevel + 1;
+      audioGainNode.gain.value = audioBoostLevel;
+      // AudioContext co the bi tam dung do chinh sach autoplay -> resume lai
+      // ngay khi co thao tac cua nguoi dung (bam nut nay chinh la 1 gesture).
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+      refreshAudioBoostToggle();
+    };
+
+    function refreshAudioBoostToggle() {
+      const btn = document.getElementById('audioBoostToggle');
+      if (!btn) return;
+      btn.textContent = audioBoostLevel === 1 ? '🔊 Tăng âm' : ('🔊 Tăng âm: x' + audioBoostLevel);
+    }
+
     // Lưu ngay khi rời trang (đóng tab, chuyển trang) — chắc chắn không mất chỗ.
     window.addEventListener('pagehide', () => saveWatchProgress(true));
     document.addEventListener('visibilitychange', () => {
@@ -335,6 +387,10 @@
       hlsInstance = null;
       try { if (plyrInstance) plyrInstance.destroy(); } catch (e) {}
       plyrInstance = null;
+      // Dong AudioContext cu (gan voi <video> sap bi go bo) de khong ro ri -
+      // se tao lai AudioContext moi cho <video> moi trong armAudioBoost().
+      try { if (audioCtx) audioCtx.close(); } catch (e) {}
+      audioCtx = null; audioGainNode = null;
 
       const stale = container.querySelector('.plyr') || container.querySelector('video');
       const fresh = document.createElement('video');
@@ -408,6 +464,7 @@
               nextBtnHtml +
               '<button id="adSkipToggle" onclick="toggleAutoSkip()" title="Tự động bỏ qua quảng cáo chèn giữa phim"></button>' +
               '<button onclick="rebuildPlayer()" title="Tiếng bị méo/ồm ồm? Bấm để dựng lại trình phát, không mất chỗ đang xem.">♪ Sửa tiếng</button>' +
+              '<button id="audioBoostToggle" onclick="cycleAudioBoost()" title="Phim bị nhỏ tiếng? Bấm để tăng âm lượng (chỉ áp dụng cho lần xem này).">🔊 Tăng âm</button>' +
               '<button onclick="location.href=\'movie.html?slug=' + slug + '\'">ⓘ Chi tiết</button>' +
             '</div>' +
           '</div>' +
@@ -416,6 +473,7 @@
 
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
       refreshAdSkipToggle();
+      refreshAudioBoostToggle();
       bindServerTabs();
     }
 
@@ -505,6 +563,7 @@
       const video = document.getElementById('videoPlayer');
       armAdSkip(video);
       armHistorySave(video);
+      armAudioBoost(video);
       currentM3u8Url = m3u8Url;
       const resumeAt = pendingResume;
       const resumePlay = pendingAutoplay;
