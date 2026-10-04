@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260922r50"/>
+  <link rel="stylesheet" href="css/style.css?v=20260922r51"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -81,10 +81,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260922r50"></script>
-  <script src="js/api.js?v=20260922r50"></script>
-  <script src="js/storage.js?v=20260922r50"></script>
-  <script src="js/common.js?v=20260922r50"></script>
+  <script src="js/auth.js?v=20260922r51"></script>
+  <script src="js/api.js?v=20260922r51"></script>
+  <script src="js/storage.js?v=20260922r51"></script>
+  <script src="js/common.js?v=20260922r51"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -477,12 +477,49 @@
             '</div>' +
           '</div>' +
         '</div>' +
-        renderEpisodes(episodes, currentEp.slug, serverIdx);
+        renderEpisodes(episodes, currentEp.slug, serverIdx) +
+        // Ẩn sẵn (display:none) - chỉ hiện khi loadRelatedMovies() tìm được
+        // phim liên quan thật, tránh hiện section rỗng/tiêu đề cụt.
+        '<section id="relatedSection" style="display:none;margin-top:28px;">' +
+          '<h2 class="section-title">🎬 Phim liên quan</h2>' +
+          '<div id="relatedList" class="movie-grid"></div>' +
+        '</section>';
 
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
       refreshAdSkipToggle();
       refreshAudioBoostToggle();
       bindServerTabs();
+      loadRelatedMovies(movie);   // khong await - khong lam cham tai video
+    }
+
+    // Phim liên quan: lấy theo THỂ LOẠI của phim đang xem (ưu tiên), nếu phim
+    // không có thể loại thì lấy theo QUỐC GIA. Dùng lại getFilteredMovies() và
+    // renderMovieList() có sẵn - không cần endpoint hay cách render mới.
+    async function loadRelatedMovies(movie) {
+      const section = document.getElementById('relatedSection');
+      if (!section) return;
+      try {
+        const cat = (movie.category && movie.category[0]) || null;
+        const country = (movie.country && movie.country[0]) || null;
+        if (!cat && !country) { section.style.display = 'none'; return; }   // phim khong co du lieu de doi chieu
+
+        const filters = cat ? { category: cat.slug } : { country: country.slug };
+        const { items } = await getFilteredMovies(filters, 1);
+        // Bo chinh phim dang xem ra khoi danh sach de xuat.
+        const related = (items || []).filter(m => m.slug !== slug).slice(0, 12);
+        if (!related.length) { section.style.display = 'none'; return; }
+
+        const titleEl = section.querySelector('.section-title');
+        if (titleEl) {
+          titleEl.textContent = cat
+            ? '🎬 Phim cùng thể loại: ' + cat.name
+            : '🎬 Phim cùng quốc gia: ' + country.name;
+        }
+        renderMovieList(related, 'relatedList');
+        section.style.display = '';
+      } catch (e) {
+        section.style.display = 'none';   // loi API -> an di, khong hien gi xau
+      }
     }
 
     function setupAfterPlyrReady() {
