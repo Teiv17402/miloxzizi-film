@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260922r51"/>
+  <link rel="stylesheet" href="css/style.css?v=20260922r53"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -81,10 +81,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260922r51"></script>
-  <script src="js/api.js?v=20260922r51"></script>
-  <script src="js/storage.js?v=20260922r51"></script>
-  <script src="js/common.js?v=20260922r51"></script>
+  <script src="js/auth.js?v=20260922r53"></script>
+  <script src="js/api.js?v=20260922r53"></script>
+  <script src="js/storage.js?v=20260922r53"></script>
+  <script src="js/common.js?v=20260922r53"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -481,8 +481,14 @@
         // Ẩn sẵn (display:none) - chỉ hiện khi loadRelatedMovies() tìm được
         // phim liên quan thật, tránh hiện section rỗng/tiêu đề cụt.
         '<section id="relatedSection" style="display:none;margin-top:28px;">' +
-          '<h2 class="section-title">🎬 Phim liên quan</h2>' +
-          '<div id="relatedList" class="movie-grid"></div>' +
+          '<div id="relatedSeriesBlock" style="display:none;">' +
+            '<h2 class="section-title">📺 Các phần khác</h2>' +
+            '<div id="relatedSeriesList" class="movie-grid"></div>' +
+          '</div>' +
+          '<div id="relatedCategoryBlock" style="display:none;margin-top:20px;">' +
+            '<h2 class="section-title">🎬 Phim liên quan</h2>' +
+            '<div id="relatedList" class="movie-grid"></div>' +
+          '</div>' +
         '</section>';
 
       initPlyrPlayer(currentEp.link_m3u8, nextEpUrlGlobal);
@@ -492,34 +498,82 @@
       loadRelatedMovies(movie);   // khong await - khong lam cham tai video
     }
 
-    // Phim liên quan: lấy theo THỂ LOẠI của phim đang xem (ưu tiên), nếu phim
-    // không có thể loại thì lấy theo QUỐC GIA. Dùng lại getFilteredMovies() và
-    // renderMovieList() có sẵn - không cần endpoint hay cách render mới.
+    // Phim "Tên phim (Phần N)" trên phimapi là NHIỀU SLUG/PHIM RIÊNG cho mỗi
+    // mùa/phần (khác "tập phim" vốn đã nằm trong server_data của CÙNG 1 phim).
+    // Bỏ hậu tố "(Phần N)"/"(Season N)" để ra "tên gốc" dùng so khớp các phần
+    // cùng series với nhau.
+    // Một số tên phim trên phimapi có ký tự vô hình (zero-width space...) dính
+    // ở cuối chuỗi (vd "Medusa (Phần 2)​") khiến regex \s*$ không khớp
+    // được - phải lọc bỏ trước khi so khớp, nếu không sẽ bỏ sót cả series.
+    function cleanInvisible(s) {
+      return String(s || '').replace(/[​-‍﻿]/g, '');
+    }
+    function stripSeriesSuffix(name) {
+      return cleanInvisible(name).replace(/\s*[\(（]\s*(Phần|Season)\s*\d+\s*[\)）]\s*$/, '').trim();
+    }
+    function extractPartNum(name) {
+      const m = cleanInvisible(name).match(/[\(（]\s*(?:Phần|Season)\s*(\d+)\s*[\)）]\s*$/);
+      return m ? parseInt(m[1], 10) : null;
+    }
+
+    // Phim liên quan: ƯU TIÊN "các phần khác" của CÙNG series (vd phim có
+    // Phần 1/2/3/4 thì xem Phần 2 phải thấy đủ Phần 1,3,4), sau đó mới tới
+    // phim CÙNG THỂ LOẠI (hoặc CÙNG QUỐC GIA nếu không có thể loại). Dùng lại
+    // getFilteredMovies()/renderMovieList() có sẵn - không cần endpoint mới.
     async function loadRelatedMovies(movie) {
       const section = document.getElementById('relatedSection');
       if (!section) return;
+      const excludeSlugs = new Set([movie.slug]);
+      let seriesCount = 0;
+      let categoryCount = 0;
+
+      // --- Khối 1: các phần khác cùng series ---
+      try {
+        const base = stripSeriesSuffix(movie.name);
+        if (base && base !== movie.name) {   // chỉ tìm khi tên có hậu tố "(Phần N)" rõ ràng
+          const { items } = await getFilteredMovies({ keyword: base }, 1);
+          // So khớp CHÍNH XÁC tên gốc sau khi bỏ hậu tố - tránh dính phim khác
+          // chỉ trùng một phần tên (vd "Kyra Và Thế Giới Phép Thuật" khi đang
+          // xem "Thế Giới Phép Thuật").
+          const siblings = (items || [])
+            .filter(m => m.slug !== movie.slug && stripSeriesSuffix(m.name) === base)
+            .sort((a, b) => {
+              const pa = extractPartNum(a.name), pb = extractPartNum(b.name);
+              if (pa != null && pb != null) return pa - pb;
+              return (a.year || 0) - (b.year || 0);
+            });
+          if (siblings.length) {
+            siblings.forEach(m => excludeSlugs.add(m.slug));
+            renderMovieList(siblings, 'relatedSeriesList');
+            document.getElementById('relatedSeriesBlock').style.display = '';
+            seriesCount = siblings.length;
+          }
+        }
+      } catch (e) { /* bo qua - khong chan khoi 2 ben duoi */ }
+
+      // --- Khối 2: cùng thể loại (ưu tiên) hoặc cùng quốc gia (fallback) ---
       try {
         const cat = (movie.category && movie.category[0]) || null;
         const country = (movie.country && movie.country[0]) || null;
-        if (!cat && !country) { section.style.display = 'none'; return; }   // phim khong co du lieu de doi chieu
-
-        const filters = cat ? { category: cat.slug } : { country: country.slug };
-        const { items } = await getFilteredMovies(filters, 1);
-        // Bo chinh phim dang xem ra khoi danh sach de xuat.
-        const related = (items || []).filter(m => m.slug !== slug).slice(0, 12);
-        if (!related.length) { section.style.display = 'none'; return; }
-
-        const titleEl = section.querySelector('.section-title');
-        if (titleEl) {
-          titleEl.textContent = cat
-            ? '🎬 Phim cùng thể loại: ' + cat.name
-            : '🎬 Phim cùng quốc gia: ' + country.name;
+        if (cat || country) {
+          const filters = cat ? { category: cat.slug } : { country: country.slug };
+          const { items } = await getFilteredMovies(filters, 1);
+          const related = (items || []).filter(m => !excludeSlugs.has(m.slug)).slice(0, 12);
+          if (related.length) {
+            const titleEl = document.querySelector('#relatedCategoryBlock .section-title');
+            if (titleEl) {
+              titleEl.textContent = cat
+                ? '🎬 Phim cùng thể loại: ' + cat.name
+                : '🎬 Phim cùng quốc gia: ' + country.name;
+            }
+            renderMovieList(related, 'relatedList');
+            document.getElementById('relatedCategoryBlock').style.display = '';
+            categoryCount = related.length;
+          }
         }
-        renderMovieList(related, 'relatedList');
-        section.style.display = '';
-      } catch (e) {
-        section.style.display = 'none';   // loi API -> an di, khong hien gi xau
-      }
+      } catch (e) { /* bo qua - khoi series van hien binh thuong neu co */ }
+
+      section.style.display = (seriesCount || categoryCount) ? '' : 'none';
     }
 
     function setupAfterPlyrReady() {
