@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20260922r53"/>
+  <link rel="stylesheet" href="css/style.css?v=20260922r54"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -81,10 +81,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20260922r53"></script>
-  <script src="js/api.js?v=20260922r53"></script>
-  <script src="js/storage.js?v=20260922r53"></script>
-  <script src="js/common.js?v=20260922r53"></script>
+  <script src="js/auth.js?v=20260922r54"></script>
+  <script src="js/api.js?v=20260922r54"></script>
+  <script src="js/storage.js?v=20260922r54"></script>
+  <script src="js/common.js?v=20260922r54"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -253,15 +253,20 @@
     }
 
     // --- Tăng âm lượng cho phim bị nhỏ tiếng (file gốc master quá nhỏ) -----
-    // Đo thực tế: có phim (vd "Cô Hầu Gái 2010") nhỏ hơn phim bình thường tới
-    // ~24dB. Dùng Web Audio API chèn thêm GainNode SAU thẻ <video> để khuếch
-    // đại. KHÔNG lưu localStorage - chỉ áp dụng cho lần xem HIỆN TẠI, vì phim
-    // khác có thể đã đủ to, để mức tăng dính sang phim sau sẽ làm RÈ/VỠ TIẾNG.
-    // Giới hạn tối đa x3 (+9.5dB): phim to nhất đo được đỉnh chỉ -1.5dB, tăng
-    // x3 sẽ vỡ tiếng nếu lỡ để dính - x3 là mức an toàn cao nhất còn dùng được.
+    // Đo thực tế trên NHIỀU phim ngẫu nhiên (không riêng 1 phim): mean_volume
+    // phổ biến ở mức -24 đến -30dB (rất nhỏ so với chuẩn phát trực tuyến) -
+    // đây là đặc tính chung của nguồn, không phải lỗi hiếm. Nhưng đỉnh âm
+    // (max_volume) của nhiều phim chỉ cách 0dB (vỡ tiếng) khoảng 5-9dB, nên
+    // CHỈ nhân tuyến tính (GainNode) thì mức an toàn tối đa chỉ tới x3.
+    // -> Thêm DynamicsCompressorNode làm LIMITER sau GainNode: giữ nguyên âm
+    // lượng các đoạn bình thường/nhỏ, chỉ "ghìm" lại đúng những đỉnh sắp vỡ
+    // tiếng - nhờ vậy nâng được mức tăng tối đa lên x4 mà không bị rè/vỡ.
+    // KHÔNG lưu localStorage - chỉ áp dụng cho lần xem HIỆN TẠI, vì phim khác
+    // có thể đã đủ to, để mức tăng dính sang phim sau sẽ làm RÈ/VỠ TIẾNG.
     let audioCtx = null;
     let audioGainNode = null;
-    let audioBoostLevel = 1; // 1 = binh thuong, 2 = x2 (+6dB), 3 = x3 (+9.5dB)
+    let audioLimiterNode = null;
+    let audioBoostLevel = 1; // 1=binh thuong, 2=x2(+6dB), 3=x3(+9.5dB), 4=x4(+12dB)
 
     function armAudioBoost(video) {
       if (!video || video.__boostArmed) return;
@@ -274,16 +279,34 @@
         audioGainNode = audioCtx.createGain();
         audioGainNode.gain.value = audioBoostLevel;
         source.connect(audioGainNode);
-        audioGainNode.connect(audioCtx.destination);
+        try {
+          // Limiter "brickwall" nhẹ: threshold sát 0dB, ratio cao, attack cực
+          // nhanh - chỉ can thiệp đúng lúc tín hiệu sắp vỡ tiếng, các đoạn
+          // bình thường đi qua gần như không đổi.
+          audioLimiterNode = audioCtx.createDynamicsCompressor();
+          audioLimiterNode.threshold.value = -1;
+          audioLimiterNode.knee.value = 0;
+          audioLimiterNode.ratio.value = 20;
+          audioLimiterNode.attack.value = 0.003;
+          audioLimiterNode.release.value = 0.15;
+          audioGainNode.connect(audioLimiterNode);
+          audioLimiterNode.connect(audioCtx.destination);
+        } catch (e) {
+          // Khong tao duoc limiter (hiem) -> noi thang gain vao destination,
+          // van dung duoc nhu ban cu (chi mat lop chong vo tieng o muc cao).
+          audioLimiterNode = null;
+          audioGainNode.connect(audioCtx.destination);
+        }
         // Loc de F12 Console/kiem thu doc duoc trang thai, giong window.__audioDiag.
         window.__audioCtx = audioCtx;
         window.__audioGainNode = audioGainNode;
+        window.__audioLimiterNode = audioLimiterNode;
       } catch (e) {
         // Loi (vd trinh duyet chan) -> am thanh van phat qua duong mac dinh cua
         // <video>, chi la khong tang duoc. Khong lam gi them de tranh cau
         // truc am thanh bi hong.
         diag('audioboost.err', e && e.message);
-        audioCtx = null; audioGainNode = null;
+        audioCtx = null; audioGainNode = null; audioLimiterNode = null;
       }
     }
 
@@ -297,7 +320,7 @@
       // AudioContext luon 'running' ngay (dung dac ta autoplay-gesture).
       if (!audioGainNode) armAudioBoost(document.getElementById('videoPlayer'));
       if (!audioGainNode) return; // trinh duyet qua cu / khong ho tro -> bo qua
-      audioBoostLevel = audioBoostLevel >= 3 ? 1 : audioBoostLevel + 1;
+      audioBoostLevel = audioBoostLevel >= 4 ? 1 : audioBoostLevel + 1;
       audioGainNode.gain.value = audioBoostLevel;
       // Luoi phong: neu van con 'suspended' vi ly do khac, resume ngay trong
       // cung gesture nay.
@@ -398,7 +421,7 @@
       // Dong AudioContext cu (gan voi <video> sap bi go bo) de khong ro ri -
       // se tao lai AudioContext moi cho <video> moi trong armAudioBoost().
       try { if (audioCtx) audioCtx.close(); } catch (e) {}
-      audioCtx = null; audioGainNode = null;
+      audioCtx = null; audioGainNode = null; audioLimiterNode = null;
 
       const stale = container.querySelector('.plyr') || container.querySelector('video');
       const fresh = document.createElement('video');
