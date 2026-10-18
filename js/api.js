@@ -82,9 +82,12 @@ async function getFilteredMovies(filters, page = 1) {
   const category = f.category || '';
   const country = f.country || '';
   const year = f.year || '';
+  const sortField = f.sortField || '';   // vd 'year' - da xac nhan API honor dung
+  const sortType = f.sortType || '';     // 'asc' | 'desc'
 
   const qs = new URLSearchParams();
   qs.set('page', page);
+  if (sortField) { qs.set('sort_field', sortField); qs.set('sort_type', sortType || 'desc'); }
   let path;
 
   if (keyword) {
@@ -108,8 +111,14 @@ async function getFilteredMovies(filters, page = 1) {
     if (year) qs.set('year', year);
   } else if (year) {
     path = '/v1/api/nam/' + year;
+  } else if (sortField) {
+    // Khong loc gi nhung CO yeu cau sap xep -> endpoint getNewMovies() dung
+    // (ban /danh-sach/ cu) KHONG nhan sort_field (da kiem tra thuc te, bo
+    // qua tham so nay). Dung ban /v1/api/danh-sach/phim-moi-cap-nhat tuong
+    // duong, co honor sort_field dung.
+    path = '/v1/api/danh-sach/phim-moi-cap-nhat';
   } else {
-    // Không lọc gì -> danh sách phim mới cập nhật.
+    // Khong loc, khong sap xep -> danh sach phim moi cap nhat (co cache).
     return getNewMovies(page);
   }
 

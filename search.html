@@ -27,7 +27,7 @@
   <meta name="twitter:image" content="https://teiv17402.github.io/miloxzizi-film/icons/icon-512.png"/>
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20261018r3"/>
+  <link rel="stylesheet" href="css/style.css?v=20261018r4"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -56,6 +56,12 @@
         <option value="">-- Năm --</option>
       </select>
 
+      <select id="filterSort">
+        <option value="">-- Mới cập nhật --</option>
+        <option value="year_desc">Năm mới nhất</option>
+        <option value="year_asc">Năm cũ nhất</option>
+      </select>
+
       <button class="btn" id="applyFilter">Áp dụng</button>
       <button class="btn btn-secondary" id="resetFilter">Xoá lọc</button>
     </div>
@@ -66,10 +72,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20261018r3"></script>
-  <script src="js/api.js?v=20261018r3"></script>
-  <script src="js/storage.js?v=20261018r3"></script>
-  <script src="js/common.js?v=20261018r3"></script>
+  <script src="js/auth.js?v=20261018r4"></script>
+  <script src="js/api.js?v=20261018r4"></script>
+  <script src="js/storage.js?v=20261018r4"></script>
+  <script src="js/common.js?v=20261018r4"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -96,6 +102,7 @@
     const category = getQueryParam('category') || '';
     const country = getQueryParam('country') || '';
     const year = getQueryParam('year') || '';
+    const sort = getQueryParam('sort') || '';   // vd 'year_desc' | 'year_asc'
     let currentPage = parseInt(getQueryParam('page')) || 1;
 
     // Set state filter từ URL
@@ -103,6 +110,10 @@
     document.getElementById('filterCategory').value = category;
     document.getElementById('filterCountry').value = country;
     document.getElementById('filterYear').value = year;
+    document.getElementById('filterSort').value = sort;
+
+    // 'year_desc' -> {field:'year', type:'desc'}
+    const [sortField, sortType] = sort ? sort.split('_') : ['', ''];
 
     if (keyword) {
       document.getElementById('searchInput').value = keyword;
@@ -116,10 +127,12 @@
       const c = document.getElementById('filterCategory').value;
       const co = document.getElementById('filterCountry').value;
       const y = document.getElementById('filterYear').value;
+      const s = document.getElementById('filterSort').value;
       if (t) params.set('type', t);
       if (c) params.set('category', c);
       if (co) params.set('country', co);
       if (y) params.set('year', y);
+      if (s) params.set('sort', s);
       window.location.href = `search.html?${params.toString()}`;
     });
 
@@ -134,7 +147,7 @@
 
       // Gửi TẤT CẢ bộ lọc đang bật trong một lời gọi. Trước đây dùng chuỗi
       // else-if nên chỉ bộ lọc đầu tiên có tác dụng.
-      const result = await getFilteredMovies({ keyword, type, category, country, year }, page);
+      const result = await getFilteredMovies({ keyword, type, category, country, year, sortField, sortType }, page);
 
       // Tiêu đề phải phản ánh đúng mọi bộ lọc đang bật, không chỉ một cái.
       const typeNames = {
@@ -150,6 +163,8 @@
       if (category) parts.push(CATEGORIES.find(c => c.slug === category)?.name || category);
       if (country) parts.push(COUNTRIES.find(c => c.slug === country)?.name || country);
       if (year) parts.push('Năm ' + year);
+      if (sort === 'year_desc') parts.push('Năm mới nhất');
+      if (sort === 'year_asc') parts.push('Năm cũ nhất');
       if (keyword) {
         document.getElementById('pageTitle').textContent =
           `Kết quả tìm: "${keyword}"` + (parts.length ? ' - ' + parts.join(' - ') : '');
