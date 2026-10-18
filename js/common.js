@@ -11,6 +11,18 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// phimapi tra san diem TMDB/IMDb trong MOI response (ke ca danh sach luot
+// nhanh, khong rieng trang chi tiet) - uu tien TMDB, fallback IMDb. Phim
+// moi/it nguoi biet thuong vote_average=0 (chua ai cham) -> coi nhu chua co
+// diem, khong hien badge "0.0" xau.
+function getRatingInfo(movie) {
+  const t = movie && movie.tmdb;
+  const i = movie && movie.imdb;
+  if (t && t.vote_average > 0) return { score: t.vote_average, source: 'TMDB' };
+  if (i && i.vote_average > 0) return { score: i.vote_average, source: 'IMDb' };
+  return null;
+}
+
 function renderHeader(activePage) {
   activePage = activePage || 'home';
   const categoryDropdown = (typeof CATEGORIES !== 'undefined' ? CATEGORIES : [])
@@ -76,12 +88,16 @@ function renderMovieCard(movie) {
   if (movie.time) metaItems.push('<span>' + escapeHtml(movie.time) + '</span>');
   if (movie.quality) metaItems.push('<span>' + escapeHtml(movie.quality) + '</span>');
 
+  const rating = getRatingInfo(movie);
+  const ratingHtml = rating ? '<div class="rating-badge">⭐ ' + rating.score.toFixed(1) + '</div>' : '';
+
   const name = escapeHtml(movie.name);
   return `
     <a href="movie.html?slug=${encodeURIComponent(movie.slug || '')}" class="movie-card">
       <div class="poster">
         <img src="${poster}" alt="${name}" loading="lazy" onerror="this.src='${PLACEHOLDER_POSTER}'"/>
         <div class="badges">${badges.join('')}</div>
+        ${ratingHtml}
         <div class="overlay">
           <div class="play-btn">▶</div>
           <div class="meta">${metaItems.join('')}</div>
@@ -325,6 +341,8 @@ function renderHeroBanner(movies) {
   const slidesHtml = slides.map((m, idx) => {
     const poster = getPosterUrl(m);
     const badges = [];
+    const rating = getRatingInfo(m);
+    if (rating) badges.push('<span class="rating">⭐ ' + rating.score.toFixed(1) + '</span>');
     if (m.episode_current) badges.push('<span>' + escapeHtml(m.episode_current) + '</span>');
     if (m.quality) badges.push('<span>' + escapeHtml(m.quality) + '</span>');
     if (m.year) badges.push('<span>' + escapeHtml(m.year) + '</span>');
