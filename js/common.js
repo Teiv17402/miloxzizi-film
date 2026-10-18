@@ -395,32 +395,47 @@ function initHeroSlider() {
 // Tren mobile, .nav-links co overflow-x:auto (de menu khong xuong 2 dong -
 // xem CSS) khien overflow-y cung bi an theo (quy tac CSS: 1 truc overflow
 // khac "visible" thi truc kia tu dong thanh "auto", khong the chi an 1
-// truc). Dropdown-menu von la position:absolute BEN TRONG khoi do nen bi
-// CAT MAT hoan toan, du JS van bat dung class "open" (bam nut thay doi mau/
-// gach chan nhung khong thay popup). Fix: khi mo tren mobile, chuyen hang
-// dropdown-menu sang position:fixed + toa do tinh tay qua JS de thoat khoi
-// vung bi cat, thay vi dua vao CSS absolute long trong .nav-links.
+// truc). Da thu fix bang position:fixed nhung VAN bi an tren dien thoai
+// that (Chrome/Playwright gia lap thi OK). Nghi van: <header> co CA
+// position:sticky LAN backdrop-filter - mot so trinh duyet mobile (dac
+// biet WebKit/Safari) coi backdrop-filter nhu filter, tao containing block
+// MOI cho con chau position:fixed -> fixed khong con tinh theo man hinh ma
+// tinh theo header (sai vi tri hoan toan, nhin nhu "khong hien gi").
+//
+// Fix triet de: KHONG dua vao position:fixed cua chinh phan tu nam trong
+// header nua. Thay vao do SAO CHEP noi dung dropdown sang 1 lop phu rieng
+// gan THANG vao <body> (chua bao gio nam trong header/sticky/backdrop-
+// filter o bat ky thoi diem nao) - loai bo hoan toan rui ro containing-
+// block tu bat ky to tien nao, bat ke trinh duyet nao.
+function getMobileDropdownOverlay() {
+  let overlay = document.getElementById('mobileDropdownOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'mobileDropdownOverlay';
+    overlay.className = 'dropdown-menu dropdown-grid mobile-dropdown-overlay';
+    document.body.appendChild(overlay);
+  }
+  return overlay;
+}
 function positionDropdownMobile(toggle, menu) {
   const rect = toggle.getBoundingClientRect();
-  menu.style.position = 'fixed';
-  menu.style.top = (rect.bottom + 10) + 'px';
-  menu.style.left = '16px';
-  menu.style.right = '16px';
-  menu.style.transform = 'none';
+  const overlay = getMobileDropdownOverlay();
+  overlay.innerHTML = menu.innerHTML;   // link tinh (href thuan, khong gan JS rieng) -> sao chep an toan
+  overlay.style.position = 'fixed';
+  overlay.style.top = (rect.bottom + 10) + 'px';
+  overlay.style.left = '16px';
+  overlay.style.right = '16px';
+  overlay.style.transform = 'none';
+  overlay.style.opacity = '1';
+  overlay.style.visibility = 'visible';
 }
-function resetDropdownPosition(menu) {
-  menu.style.position = '';
-  menu.style.top = '';
-  menu.style.left = '';
-  menu.style.right = '';
-  menu.style.transform = '';
+function resetDropdownPosition() {
+  const overlay = document.getElementById('mobileDropdownOverlay');
+  if (overlay) { overlay.style.opacity = '0'; overlay.style.visibility = 'hidden'; }
 }
 function closeAllDropdowns() {
-  document.querySelectorAll('.has-dropdown.open').forEach(d => {
-    d.classList.remove('open');
-    const m = d.querySelector('.dropdown-menu');
-    if (m) resetDropdownPosition(m);
-  });
+  document.querySelectorAll('.has-dropdown.open').forEach(d => d.classList.remove('open'));
+  resetDropdownPosition();
 }
 
 function initDropdownToggle() {
@@ -441,7 +456,10 @@ function initDropdownToggle() {
     });
   });
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.has-dropdown')) closeAllDropdowns();
+    // Lop phu mobile nam ngoai .has-dropdown (da chuyen ra <body>) nen phai
+    // tru rieng id cua no ra, khong thi bam vao link ben trong se bi coi la
+    // "bam ra ngoai" va dong ngay truoc khi kip dieu huong.
+    if (!e.target.closest('.has-dropdown') && !e.target.closest('#mobileDropdownOverlay')) closeAllDropdowns();
   });
   // KHONG dong theo scroll cua .nav-links: menu dat left/right theo VIEWPORT
   // (khong theo vi tri X cua nut trong thanh cuon ngang) nen cuon ngang

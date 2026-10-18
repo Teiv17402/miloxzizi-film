@@ -83,6 +83,15 @@ header.scrolled { background: rgba(10, 10, 10, 0.98); }
 }
 .has-dropdown:hover .dropdown-toggle::after,
 .has-dropdown.open .dropdown-toggle::after { width: 100%; }
+/* Lop phu dropdown rieng cho mobile - gan thang vao <body>, khong bao gio
+   nam trong header (sticky + backdrop-filter) de tranh loi containing-block
+   cua position:fixed tren mot so trinh duyet mobile (WebKit...). z-index
+   cao hon han header (1000) de chac chan luon ve phia tren du vi tri tinh
+   co le lech it nhieu. opacity/visibility dieu khien hoan toan bang JS
+   (inline style) - KHONG dua vao .has-dropdown.open vi no khong con nam
+   trong .has-dropdown nua. */
+.mobile-dropdown-overlay { z-index: 10001 !important; }
+
 .dropdown-menu {
   position: absolute; top: calc(100% + 12px); left: -16px;
   background: rgba(20, 20, 20, 0.98);
