@@ -30,7 +30,7 @@
   <meta name="twitter:image" content="https://teiv17402.github.io/miloxzizi-film/icons/icon-512.png"/>
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20261018r5"/>
+  <link rel="stylesheet" href="css/style.css?v=20261018r6"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -41,12 +41,21 @@
     </div>
   </main>
 
+  <!-- Modal trailer: chỉ tạo iframe LÚC MỞ (không nhúng sẵn lúc tải trang) -
+       tránh gọi YouTube ngầm khi user chưa yêu cầu xem trailer. -->
+  <div id="trailerModal" class="trailer-modal" style="display:none;" onclick="if(event.target===this) closeTrailer()">
+    <div class="trailer-modal-inner">
+      <button class="trailer-close" onclick="closeTrailer()" aria-label="Đóng trailer">✕</button>
+      <div class="trailer-frame-wrap" id="trailerFrameWrap"></div>
+    </div>
+  </div>
+
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20261018r5"></script>
-  <script src="js/api.js?v=20261018r5"></script>
-  <script src="js/storage.js?v=20261018r5"></script>
-  <script src="js/common.js?v=20261018r5"></script>
+  <script src="js/auth.js?v=20261018r6"></script>
+  <script src="js/api.js?v=20261018r6"></script>
+  <script src="js/storage.js?v=20261018r6"></script>
+  <script src="js/common.js?v=20261018r6"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -83,6 +92,10 @@
       const viewHtml = movie.view > 0
         ? `<div class="view-count">👁 ${movie.view.toLocaleString('vi-VN')} lượt xem</div>`
         : '';
+      const trailerId = extractYoutubeId(movie.trailer_url);
+      const trailerBtnHtml = trailerId
+        ? `<button class="btn btn-secondary" onclick="openTrailer('${trailerId}')">▶ Xem trailer</button>`
+        : '';
 
       // Lấy tập đầu tiên để xem
       const firstEp = episodes[0]?.server_data?.[0];
@@ -102,6 +115,7 @@
             <div class="btn-group">
               <a href="${firstEpUrl}" class="btn">▶ Xem ngay</a>
               <button class="btn btn-secondary" id="favBtn">${fav ? '★ Đã thích' : '☆ Yêu thích'}</button>
+              ${trailerBtnHtml}
             </div>
 
             <ul class="meta-list">
@@ -182,6 +196,32 @@
         });
       });
     }
+
+    // Nhận cả dạng watch?v=ID, youtu.be/ID, embed/ID - trailer_url trên
+    // phimapi không cố định 1 kiểu.
+    function extractYoutubeId(url) {
+      if (!url) return null;
+      const m = String(url).match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function openTrailer(videoId) {
+      const modal = document.getElementById('trailerModal');
+      const wrap = document.getElementById('trailerFrameWrap');
+      wrap.innerHTML = '<iframe src="https://www.youtube.com/embed/' + videoId + '?autoplay=1" ' +
+        'title="Trailer" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeTrailer() {
+      const modal = document.getElementById('trailerModal');
+      document.getElementById('trailerFrameWrap').innerHTML = '';   // go iframe -> dung phat ngay, khong chi an di
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeTrailer();
+    });
   </script>
 </body>
 </html>
