@@ -374,6 +374,37 @@ function initHeroSlider() {
   startAuto();
 }
 
+// Tren mobile, .nav-links co overflow-x:auto (de menu khong xuong 2 dong -
+// xem CSS) khien overflow-y cung bi an theo (quy tac CSS: 1 truc overflow
+// khac "visible" thi truc kia tu dong thanh "auto", khong the chi an 1
+// truc). Dropdown-menu von la position:absolute BEN TRONG khoi do nen bi
+// CAT MAT hoan toan, du JS van bat dung class "open" (bam nut thay doi mau/
+// gach chan nhung khong thay popup). Fix: khi mo tren mobile, chuyen hang
+// dropdown-menu sang position:fixed + toa do tinh tay qua JS de thoat khoi
+// vung bi cat, thay vi dua vao CSS absolute long trong .nav-links.
+function positionDropdownMobile(toggle, menu) {
+  const rect = toggle.getBoundingClientRect();
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 10) + 'px';
+  menu.style.left = '16px';
+  menu.style.right = '16px';
+  menu.style.transform = 'none';
+}
+function resetDropdownPosition(menu) {
+  menu.style.position = '';
+  menu.style.top = '';
+  menu.style.left = '';
+  menu.style.right = '';
+  menu.style.transform = '';
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.has-dropdown.open').forEach(d => {
+    d.classList.remove('open');
+    const m = d.querySelector('.dropdown-menu');
+    if (m) resetDropdownPosition(m);
+  });
+}
+
 function initDropdownToggle() {
   document.querySelectorAll('.has-dropdown .dropdown-toggle').forEach(toggle => {
     toggle.addEventListener('click', (e) => {
@@ -381,18 +412,27 @@ function initDropdownToggle() {
         e.preventDefault();
         e.stopPropagation();
         const parent = toggle.parentElement;
-        document.querySelectorAll('.has-dropdown').forEach(d => {
-          if (d !== parent) d.classList.remove('open');
-        });
-        parent.classList.toggle('open');
+        const menu = parent.querySelector('.dropdown-menu');
+        const willOpen = !parent.classList.contains('open');
+        closeAllDropdowns();
+        if (willOpen) {
+          parent.classList.add('open');
+          if (menu) positionDropdownMobile(toggle, menu);
+        }
       }
     });
   });
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.has-dropdown')) {
-      document.querySelectorAll('.has-dropdown.open').forEach(d => d.classList.remove('open'));
-    }
+    if (!e.target.closest('.has-dropdown')) closeAllDropdowns();
   });
+  // KHONG dong theo scroll cua .nav-links: menu dat left/right theo VIEWPORT
+  // (khong theo vi tri X cua nut trong thanh cuon ngang) nen cuon ngang
+  // khong lam lech vi tri - tung thu dong-khi-cuon o day nhung no tu kich
+  // hoat NGAY KHI MO, vi .nav-links tren man hinh hep phai tu cuon de dua
+  // nut "The loai" vao khung hinh truoc khi nhan duoc cham/click (dung thao
+  // tac mo cung gay ra 1 lan cuon) -> dropdown mo len roi tat ngay lap tuc.
+  // Chi giu dong khi resize that su (xoay man hinh...).
+  window.addEventListener('resize', closeAllDropdowns);
 }
 
 if (document.readyState !== 'loading') {
