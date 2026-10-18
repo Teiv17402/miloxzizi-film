@@ -449,8 +449,21 @@ function initDropdownToggle() {
   // hoat NGAY KHI MO, vi .nav-links tren man hinh hep phai tu cuon de dua
   // nut "The loai" vao khung hinh truoc khi nhan duoc cham/click (dung thao
   // tac mo cung gay ra 1 lan cuon) -> dropdown mo len roi tat ngay lap tuc.
-  // Chi giu dong khi resize that su (xoay man hinh...).
-  window.addEventListener('resize', closeAllDropdowns);
+  //
+  // Resize: CHI dong khi WIDTH thuc su doi (xoay man hinh, thu gon cua so).
+  // Tren trinh duyet mobile that (Safari/Chrome iOS/Android), thanh dia chi
+  // tu an/hien luc cuon trang se BAN THAN kich hoat 1 su kien 'resize' (chi
+  // doi HEIGHT, width khong doi) - neu dong dropdown theo moi resize thi
+  // dung lan cuon-de-an-thanh-dia-chi do (xay ra ngay luc vua mo, giong het
+  // bug cuon .nav-links da gap) se tat dropdown ngay sau khi mo. Playwright
+  // test voi viewport CO DINH khong mo phong duoc hien tuong nay nen truoc
+  // do khong phat hien ra.
+  let lastInnerWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastInnerWidth) return;   // chi doi height -> bo qua
+    lastInnerWidth = window.innerWidth;
+    closeAllDropdowns();
+  });
 }
 
 if (document.readyState !== 'loading') {
