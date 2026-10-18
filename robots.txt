@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://teiv17402.github.io/miloxzizi-film/sitemap.xml
