@@ -83,14 +83,45 @@ header.scrolled { background: rgba(10, 10, 10, 0.98); }
 }
 .has-dropdown:hover .dropdown-toggle::after,
 .has-dropdown.open .dropdown-toggle::after { width: 100%; }
-/* Lop phu dropdown rieng cho mobile - gan thang vao <body>, khong bao gio
-   nam trong header (sticky + backdrop-filter) de tranh loi containing-block
-   cua position:fixed tren mot so trinh duyet mobile (WebKit...). z-index
-   cao hon han header (1000) de chac chan luon ve phia tren du vi tri tinh
-   co le lech it nhieu. opacity/visibility dieu khien hoan toan bang JS
-   (inline style) - KHONG dua vao .has-dropdown.open vi no khong con nam
-   trong .has-dropdown nua. */
-.mobile-dropdown-overlay { z-index: 10001 !important; }
+/* Modal Thể loại/Quốc gia TRÊN MOBILE - toàn màn hình (position:fixed;
+   inset:0;) kiểu bottom-sheet, giống hệt #trailerModal. Gắn thẳng vào
+   <body>, không bao giờ nằm trong header (sticky + backdrop-filter) - né
+   mọi rủi ro containing-block của position:fixed trên trình duyệt mobile.
+   Không cần tính toạ độ theo nút bấm (rect.bottom...) nên không còn lớp
+   bug "định vị sai" nữa - chỉ còn show/hide đơn giản qua class .show. */
+.mobile-dropdown-overlay {
+  position: fixed; inset: 0; z-index: 10001;
+  background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.mobile-dropdown-overlay.show { display: flex; }
+.mobile-dropdown-sheet {
+  width: 100%; max-width: 600px; max-height: 78vh;
+  background: #141414; border-radius: 18px 18px 0 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  animation: mobileSheetUp 0.25s ease-out;
+}
+@keyframes mobileSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.mobile-dropdown-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 18px; border-bottom: 1px solid var(--border);
+  font-size: 17px; font-weight: 800; flex-shrink: 0;
+}
+.mobile-dropdown-close {
+  background: rgba(255,255,255,0.1); border: none; color: #fff;
+  width: 32px; height: 32px; border-radius: 50%; font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.mobile-dropdown-body {
+  padding: 10px 14px 24px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px;
+}
+.mobile-dropdown-body a {
+  display: block; padding: 13px 12px; border-radius: 8px;
+  color: #fff; font-size: 14px; font-weight: 500;
+}
+.mobile-dropdown-body a:active { background: var(--accent); }
 
 .dropdown-menu {
   position: absolute; top: calc(100% + 12px); left: -16px;

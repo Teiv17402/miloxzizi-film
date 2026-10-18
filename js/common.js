@@ -392,50 +392,51 @@ function initHeroSlider() {
   startAuto();
 }
 
-// Tren mobile, .nav-links co overflow-x:auto (de menu khong xuong 2 dong -
-// xem CSS) khien overflow-y cung bi an theo (quy tac CSS: 1 truc overflow
-// khac "visible" thi truc kia tu dong thanh "auto", khong the chi an 1
-// truc). Da thu fix bang position:fixed nhung VAN bi an tren dien thoai
-// that (Chrome/Playwright gia lap thi OK). Nghi van: <header> co CA
-// position:sticky LAN backdrop-filter - mot so trinh duyet mobile (dac
-// biet WebKit/Safari) coi backdrop-filter nhu filter, tao containing block
-// MOI cho con chau position:fixed -> fixed khong con tinh theo man hinh ma
-// tinh theo header (sai vi tri hoan toan, nhin nhu "khong hien gi").
+// Tren mobile, da thu 3 lan va deu KHONG het loi tren Safari that cua user
+// (du Chrome/WebKit gia lap deu OK): (1) chuyen sang position:fixed, (2) fix
+// resize listener, (3) tach dropdown ra khoi DOM header. Ca 3 lan deu dua
+// tren gia dinh "chi can dinh vi dung toa do la duoc" - nhung ban than viec
+// TINH TOA DO (rect.bottom cua nut, roi dat top/left/right) la nguon goc rui
+// ro, vi no phu thuoc vao containing block/compositing cua tung trinh duyet
+// cu the ma khong the kiem chung het tren may chu.
 //
-// Fix triet de: KHONG dua vao position:fixed cua chinh phan tu nam trong
-// header nua. Thay vao do SAO CHEP noi dung dropdown sang 1 lop phu rieng
-// gan THANG vao <body> (chua bao gio nam trong header/sticky/backdrop-
-// filter o bat ky thoi diem nao) - loai bo hoan toan rui ro containing-
-// block tu bat ky to tien nao, bat ke trinh duyet nao.
+// Doi han huong tiep can: BO HAN viec dinh vi theo nut bam. Dung MODAL TOAN
+// MAN HINH (position:fixed; inset:0;) giong het #trailerModal - mot pattern
+// da xac nhan hoat dong on dinh tren chinh trang nay. Khong con rect.bottom/
+// top/left/right nao de tinh sai nua, nen loai bo duoc ca lop bug nay.
 function getMobileDropdownOverlay() {
   let overlay = document.getElementById('mobileDropdownOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'mobileDropdownOverlay';
-    overlay.className = 'dropdown-menu dropdown-grid mobile-dropdown-overlay';
+    overlay.className = 'mobile-dropdown-overlay';
+    overlay.innerHTML =
+      '<div class="mobile-dropdown-sheet">' +
+        '<div class="mobile-dropdown-header">' +
+          '<span id="mobileDropdownTitle"></span>' +
+          '<button type="button" class="mobile-dropdown-close" aria-label="Đóng">✕</button>' +
+        '</div>' +
+        '<div class="mobile-dropdown-body" id="mobileDropdownBody"></div>' +
+      '</div>';
     document.body.appendChild(overlay);
+    overlay.querySelector('.mobile-dropdown-close').addEventListener('click', closeAllDropdowns);
+    // Bam vao nen toi (chinh overlay, khong phai sheet/link ben trong) -> dong.
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAllDropdowns(); });
   }
   return overlay;
 }
-function positionDropdownMobile(toggle, menu) {
-  const rect = toggle.getBoundingClientRect();
+function openMobileDropdown(toggle, menu) {
   const overlay = getMobileDropdownOverlay();
-  overlay.innerHTML = menu.innerHTML;   // link tinh (href thuan, khong gan JS rieng) -> sao chep an toan
-  overlay.style.position = 'fixed';
-  overlay.style.top = (rect.bottom + 10) + 'px';
-  overlay.style.left = '16px';
-  overlay.style.right = '16px';
-  overlay.style.transform = 'none';
-  overlay.style.opacity = '1';
-  overlay.style.visibility = 'visible';
-}
-function resetDropdownPosition() {
-  const overlay = document.getElementById('mobileDropdownOverlay');
-  if (overlay) { overlay.style.opacity = '0'; overlay.style.visibility = 'hidden'; }
+  overlay.querySelector('#mobileDropdownTitle').textContent = toggle.childNodes[0].textContent.trim();
+  overlay.querySelector('#mobileDropdownBody').innerHTML = menu.innerHTML;   // link tinh (href thuan) -> sao chep an toan
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 function closeAllDropdowns() {
   document.querySelectorAll('.has-dropdown.open').forEach(d => d.classList.remove('open'));
-  resetDropdownPosition();
+  const overlay = document.getElementById('mobileDropdownOverlay');
+  if (overlay) overlay.classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 function initDropdownToggle() {
@@ -450,38 +451,15 @@ function initDropdownToggle() {
         closeAllDropdowns();
         if (willOpen) {
           parent.classList.add('open');
-          if (menu) positionDropdownMobile(toggle, menu);
+          if (menu) openMobileDropdown(toggle, menu);
         }
       }
     });
   });
   document.addEventListener('click', (e) => {
-    // Lop phu mobile nam ngoai .has-dropdown (da chuyen ra <body>) nen phai
-    // tru rieng id cua no ra, khong thi bam vao link ben trong se bi coi la
-    // "bam ra ngoai" va dong ngay truoc khi kip dieu huong.
     if (!e.target.closest('.has-dropdown') && !e.target.closest('#mobileDropdownOverlay')) closeAllDropdowns();
   });
-  // KHONG dong theo scroll cua .nav-links: menu dat left/right theo VIEWPORT
-  // (khong theo vi tri X cua nut trong thanh cuon ngang) nen cuon ngang
-  // khong lam lech vi tri - tung thu dong-khi-cuon o day nhung no tu kich
-  // hoat NGAY KHI MO, vi .nav-links tren man hinh hep phai tu cuon de dua
-  // nut "The loai" vao khung hinh truoc khi nhan duoc cham/click (dung thao
-  // tac mo cung gay ra 1 lan cuon) -> dropdown mo len roi tat ngay lap tuc.
-  //
-  // Resize: CHI dong khi WIDTH thuc su doi (xoay man hinh, thu gon cua so).
-  // Tren trinh duyet mobile that (Safari/Chrome iOS/Android), thanh dia chi
-  // tu an/hien luc cuon trang se BAN THAN kich hoat 1 su kien 'resize' (chi
-  // doi HEIGHT, width khong doi) - neu dong dropdown theo moi resize thi
-  // dung lan cuon-de-an-thanh-dia-chi do (xay ra ngay luc vua mo, giong het
-  // bug cuon .nav-links da gap) se tat dropdown ngay sau khi mo. Playwright
-  // test voi viewport CO DINH khong mo phong duoc hien tuong nay nen truoc
-  // do khong phat hien ra.
-  let lastInnerWidth = window.innerWidth;
-  window.addEventListener('resize', () => {
-    if (window.innerWidth === lastInnerWidth) return;   // chi doi height -> bo qua
-    lastInnerWidth = window.innerWidth;
-    closeAllDropdowns();
-  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllDropdowns(); });
 }
 
 if (document.readyState !== 'loading') {
