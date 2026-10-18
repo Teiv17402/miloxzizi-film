@@ -30,7 +30,7 @@
   <meta name="twitter:image" content="https://teiv17402.github.io/miloxzizi-film/icons/icon-512.png"/>
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20261018r4"/>
+  <link rel="stylesheet" href="css/style.css?v=20261018r5"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -43,10 +43,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20261018r4"></script>
-  <script src="js/api.js?v=20261018r4"></script>
-  <script src="js/storage.js?v=20261018r4"></script>
-  <script src="js/common.js?v=20261018r4"></script>
+  <script src="js/auth.js?v=20261018r5"></script>
+  <script src="js/api.js?v=20261018r5"></script>
+  <script src="js/storage.js?v=20261018r5"></script>
+  <script src="js/common.js?v=20261018r5"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -80,6 +80,9 @@
       const ratingHtml = rating
         ? `<div class="detail-rating">⭐ ${rating.score.toFixed(1)} <span>(${rating.source})</span></div>`
         : '';
+      const viewHtml = movie.view > 0
+        ? `<div class="view-count">👁 ${movie.view.toLocaleString('vi-VN')} lượt xem</div>`
+        : '';
 
       // Lấy tập đầu tiên để xem
       const firstEp = episodes[0]?.server_data?.[0];
@@ -94,7 +97,7 @@
           <div class="info">
             <h1>${mName}</h1>
             <div class="origin">${escapeHtml(movie.origin_name || '')}</div>
-            ${ratingHtml}
+            <div class="meta-row">${ratingHtml}${viewHtml}</div>
 
             <div class="btn-group">
               <a href="${firstEpUrl}" class="btn">▶ Xem ngay</a>

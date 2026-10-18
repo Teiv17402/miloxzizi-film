@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://phimimg.com"/>
   <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <link rel="preconnect" href="https://cdn.plyr.io"/>
-  <link rel="stylesheet" href="css/style.css?v=20261018r4"/>
+  <link rel="stylesheet" href="css/style.css?v=20261018r5"/>
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -89,10 +89,10 @@
     </div>
   </main>
   <div id="footer-container"></div>
-  <script src="js/auth.js?v=20261018r4"></script>
-  <script src="js/api.js?v=20261018r4"></script>
-  <script src="js/storage.js?v=20261018r4"></script>
-  <script src="js/common.js?v=20261018r4"></script>
+  <script src="js/auth.js?v=20261018r5"></script>
+  <script src="js/api.js?v=20261018r5"></script>
+  <script src="js/storage.js?v=20261018r5"></script>
+  <script src="js/common.js?v=20261018r5"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
@@ -489,6 +489,13 @@
 
       const prevBtnHtml = prevEp ? '<button onclick="location.href=\'' + prevEpUrlGlobal + '\'">⏮ Tập trước</button>' : '';
       const nextBtnHtml = nextEp ? '<button onclick="location.href=\'' + nextEpUrlGlobal + '\'">Tập sau ⏭</button>' : '';
+      const watchRating = getRatingInfo(movie);
+      const watchMetaParts = [];
+      if (watchRating) watchMetaParts.push('⭐ ' + watchRating.score.toFixed(1));
+      if (movie.view > 0) watchMetaParts.push('👁 ' + movie.view.toLocaleString('vi-VN') + ' lượt xem');
+      const watchMetaHtml = watchMetaParts.length
+        ? '<div class="ep" style="margin-top:2px;">' + watchMetaParts.join('&nbsp;&nbsp;·&nbsp;&nbsp;') + '</div>'
+        : '';
 
       document.getElementById('watchContent').innerHTML =
         '<div class="player-container">' +
@@ -497,6 +504,7 @@
             '<div class="title-group">' +
               '<h1>' + movie.name + '</h1>' +
               '<div class="ep">Đang xem: <strong>' + currentEp.name + '</strong></div>' +
+              watchMetaHtml +
             '</div>' +
             '<div class="quick-actions">' +
               prevBtnHtml +
