@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <meta name="theme-color" content="#e50914"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+  <meta name="apple-mobile-web-app-title" content="MiloxZizi Film"/>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Không tìm thấy trang - MiloxZizi Film</title>
+  <link rel="stylesheet" href="css/style.css?v=20261018r3"/>
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div class="empty-state" style="padding:120px 20px;">
+      <div style="font-size:72px;font-weight:900;color:var(--accent);line-height:1;margin-bottom:16px;">404</div>
+      <p style="font-size:18px;margin-bottom:8px;">Không tìm thấy trang hoặc phim này.</p>
+      <p style="margin-bottom:28px;">Link có thể đã sai hoặc phim đã bị gỡ khỏi nguồn.</p>
+      <a href="index.html" class="btn btn-large">Về trang chủ</a>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/auth.js?v=20261018r3"></script>
+  <script src="js/api.js?v=20261018r3"></script>
+  <script src="js/storage.js?v=20261018r3"></script>
+  <script src="js/common.js?v=20261018r3"></script>
+  <script>
+    document.getElementById('header-container').innerHTML = renderHeader();
+    document.getElementById('footer-container').innerHTML = renderFooter();
+  </script>
+</body>
+</html>
