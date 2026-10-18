@@ -134,8 +134,13 @@ header.scrolled { background: rgba(10, 10, 10, 0.98); }
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999;
 }
 .dropdown-menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
-.has-dropdown:hover .dropdown-menu,
-.has-dropdown.open .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+/* CHI hien theo :hover (desktop). KHONG con ".has-dropdown.open" o day nua -
+   tung dung chung class .open voi nut bam tren mobile, nhung mobile gio da
+   co modal toan man hinh rieng (#mobileDropdownOverlay, xem common.js) -
+   neu de ca 2 cung nghe class .open thi dropdown goc (nam trong header, bi
+   .nav-links overflow-x:auto cat mat) se HIEN DE LEN cung luc voi modal moi,
+   tao ra 1 o nho vo nghia (thay thuc te tren may that cua user). */
+.has-dropdown:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
 .dropdown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
 .dropdown-menu a {
   display: block; padding: 10px 14px; border-radius: 8px;
@@ -512,6 +517,12 @@ footer p { margin: 4px 0; text-align: center; }
 
 /* Tablet */
 @media (max-width: 968px) {
+  /* An HAN .dropdown-menu goc tren moi kich thuoc mobile - lop bao ve cung,
+     khong phu thuoc JS/class nao. Noi dung The loai/Quoc gia tren mobile
+     CHI hien qua #mobileDropdownOverlay (modal rieng, xem common.js); ban
+     goc nay chi con dung cho desktop (:hover, ngoai media query nay). */
+  .dropdown-menu { display: none !important; }
+
   .nav {
     padding: 12px 16px;
     gap: 12px;
@@ -544,9 +555,6 @@ footer p { margin: 4px 0; text-align: center; }
   .movie-detail .meta-row { justify-content: center; }
   .movie-detail .info { text-align: center; }
   .btn-group { justify-content: center; }
-
-  .dropdown-menu { min-width: 320px; left: -50%; }
-  .dropdown-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Mobile */
@@ -610,15 +618,6 @@ footer p { margin: 4px 0; text-align: center; }
   .filters .btn { width: 100%; justify-content: center; }
 
   .pagination button { padding: 8px 12px; font-size: 13px; min-width: 40px; }
-
-  .dropdown-menu {
-    min-width: calc(100vw - 32px);
-    max-width: calc(100vw - 32px);
-    left: 0; right: 0;
-    transform: translateY(-10px) translateX(-16px);
-  }
-  .has-dropdown.open .dropdown-menu { transform: translateY(0) translateX(-16px); }
-  .dropdown-grid { grid-template-columns: repeat(2, 1fr); }
 
   footer { padding: 24px 16px; font-size: 13px; margin-top: 40px; }
 }
