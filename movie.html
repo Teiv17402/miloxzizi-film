@@ -16,9 +16,21 @@
   <meta name="apple-mobile-web-app-title" content="MiloxZizi Film"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chi tiết phim - MiloxZizi Film</title>
+  <!-- Trang render noi dung phim bang JS sau khi tai (fetch slug tu API) -
+       bot Facebook/Zalo khong chay JS nen khong the lay anh/tieu de RIENG
+       cho tung phim duoc share o day. Dung tam anh/mo ta chung cua site de
+       link share it nhat van co preview, khong bi trong/xau. -->
+  <meta property="og:type" content="video.movie"/>
+  <meta property="og:site_name" content="MiloxZizi Film"/>
+  <meta property="og:title" content="Chi tiết phim - MiloxZizi Film"/>
+  <meta property="og:description" content="Xem phim online chất lượng cao, miễn phí tại MiloxZizi Film."/>
+  <meta property="og:image" content="https://teiv17402.github.io/miloxzizi-film/icons/icon-512.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Chi tiết phim - MiloxZizi Film"/>
+  <meta name="twitter:image" content="https://teiv17402.github.io/miloxzizi-film/icons/icon-512.png"/>
   <link rel="preconnect" href="https://phimapi.com" crossorigin/>
   <link rel="preconnect" href="https://phimimg.com"/>
-  <link rel="stylesheet" href="css/style.css?v=20261018r2"/>
+  <link rel="stylesheet" href="css/style.css?v=20261018r3"/>
 </head>
 <body>
   <div id="header-container"></div>
@@ -31,10 +43,10 @@
 
   <div id="footer-container"></div>
 
-  <script src="js/auth.js?v=20261018r2"></script>
-  <script src="js/api.js?v=20261018r2"></script>
-  <script src="js/storage.js?v=20261018r2"></script>
-  <script src="js/common.js?v=20261018r2"></script>
+  <script src="js/auth.js?v=20261018r3"></script>
+  <script src="js/api.js?v=20261018r3"></script>
+  <script src="js/storage.js?v=20261018r3"></script>
+  <script src="js/common.js?v=20261018r3"></script>
   <script>
     document.getElementById('header-container').innerHTML = renderHeader();
     document.getElementById('footer-container').innerHTML = renderFooter();
